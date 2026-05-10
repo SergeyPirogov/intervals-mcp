@@ -274,10 +274,26 @@ export async function getEventById(
   eventId: string
 ): Promise<Event> {
   const data = await request<unknown>(
-    `/athlete/${config.athleteId}/event/${eventId}`,
+    `/athlete/${config.athleteId}/events/${eventId}`,
     config
   );
   return EventSchema.parse(data);
+}
+
+export async function getNotesByDate(
+  config: ClientConfig,
+  date: string
+): Promise<Event[]> {
+  const data = await request<unknown[]>(
+    `/athlete/${config.athleteId}/events`,
+    config,
+    { oldest: date, newest: date }
+  );
+  const events = z.array(EventSchema).parse(data);
+  return events.filter((e) => {
+    const raw = e as Record<string, unknown>;
+    return raw["category"] === "NOTE" || (!e.race && !e.workout);
+  });
 }
 
 async function mutate<T>(

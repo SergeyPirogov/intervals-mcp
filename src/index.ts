@@ -13,6 +13,7 @@ import {
   getWellness,
   getEvents,
   getEventById,
+  getNotesByDate,
   createEvent,
   updateEvent,
   deleteEvent,
@@ -345,6 +346,19 @@ const TOOLS = [
     },
   },
   {
+    name: "get_note",
+    description: "Get a specific note/event by ID, or list all notes for a given date.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        event_id: { type: "string", description: "Event/note ID to fetch by ID" },
+        date: { type: "string", description: "Date YYYY-MM-DD to list all notes for that day" },
+        athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
+        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
+      },
+    },
+  },
+  {
     name: "bulk_create_events",
     description: "Create multiple calendar events at once.",
     inputSchema: {
@@ -507,6 +521,24 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const config = getConfig(args);
         const event = await getEventById(config, eventId);
         return { content: [{ type: "text", text: formatEvent(event) }] };
+      }
+
+      case "get_note": {
+        const config = getConfig(args);
+        const eventId = args["event_id"] as string | undefined;
+        const date = args["date"] as string | undefined;
+
+        if (eventId) {
+          const event = await getEventById(config, eventId);
+          return { content: [{ type: "text", text: formatEvent(event) }] };
+        } else if (date) {
+          const notes = await getNotesByDate(config, date);
+          if (!notes.length) return { content: [{ type: "text", text: `No notes found for ${date}.` }] };
+          const text = notes.map(formatEvent).join("\n\n---\n\n");
+          return { content: [{ type: "text", text }] };
+        } else {
+          return { content: [{ type: "text", text: "Provide either event_id or date." }], isError: true };
+        }
       }
 
       case "create_event": {
