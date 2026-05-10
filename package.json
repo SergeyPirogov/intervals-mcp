@@ -1,17 +1,38 @@
 {
-  "name": "intervals-mcp",
+  "name": "intervals-icu-mcp-server",
   "version": "0.1.0",
-  "description": "MCP server for Intervals.icu",
+  "description": "MCP server for Intervals.icu — 20 tools for activities, wellness, calendar events, workouts and more",
   "type": "module",
   "bin": {
-    "intervals-mcp": "./dist/index.js"
+    "intervals-icu-mcp": "./dist/index.js"
   },
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
     "start": "node dist/index.js",
-    "inspector": "npx @modelcontextprotocol/inspector node dist/index.js"
+    "inspector": "npx @modelcontextprotocol/inspector node dist/index.js",
+    "prepare": "npm run build"
   },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "mcp",
+    "intervals.icu",
+    "cycling",
+    "training",
+    "fitness",
+    "claude",
+    "ai"
+  ],
+  "author": "SergeyPirogov",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SergeyPirogov/intervals-mcp.git"
+  },
+  "homepage": "https://github.com/SergeyPirogov/intervals-mcp#readme",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",
     "dotenv": "^16.4.7",
