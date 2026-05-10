@@ -465,3 +465,30 @@ export async function bulkDeleteEvents(
     eventIds
   );
 }
+
+export const AthleteFitnessSchema = z.object({
+  date: z.string().optional(),
+  fitness: z.number().nullable().optional(),
+  fatigue: z.number().nullable().optional(),
+  form: z.number().nullable().optional(),
+  rampRate: z.number().nullable().optional(),
+  training_load: z.number().nullable().optional(),
+  eftp: z.number().nullable().optional(),
+  eftpPerKg: z.number().nullable().optional(),
+  weight: z.number().nullable().optional(),
+}).passthrough();
+
+export type AthleteFitness = z.infer<typeof AthleteFitnessSchema>;
+
+export async function getAthleteFitness(
+  config: ClientConfig,
+  params: { startDate: string; endDate: string }
+): Promise<AthleteFitness[]> {
+  const data = await request<unknown[]>(
+    `/athlete/${config.athleteId}/athlete-summary.json`,
+    config,
+    { oldest: params.startDate, newest: params.endDate, athleteId: config.athleteId }
+  );
+  const all = z.array(AthleteFitnessSchema).parse(data);
+  return all.filter((e) => (e as Record<string, unknown>)["athlete_id"] === config.athleteId);
+}

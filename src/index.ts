@@ -28,6 +28,7 @@ import {
   createWorkout,
   bulkCreateEvents,
   bulkDeleteEvents,
+  getAthleteFitness,
   type ClientConfig,
 } from "./client.js";
 import {
@@ -346,6 +347,19 @@ const TOOLS = [
     },
   },
   {
+    name: "get_athlete_fitness",
+    description: "Get Fitness (CTL), Fatigue (ATL), Form (TSB), ramp rate and eFTP from the Fitness chart for a date range. Matches what you see on the Intervals.icu Fitness page.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        start_date: { type: "string", description: "Start date YYYY-MM-DD (default: 30 days ago)" },
+        end_date: { type: "string", description: "End date YYYY-MM-DD (default: today)" },
+        athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
+        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
+      },
+    },
+  },
+  {
     name: "get_note",
     description: "Get a specific note/event by ID, or list all notes for a given date.",
     inputSchema: {
@@ -521,6 +535,34 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const config = getConfig(args);
         const event = await getEventById(config, eventId);
         return { content: [{ type: "text", text: formatEvent(event) }] };
+      }
+
+      case "get_athlete_fitness": {
+        const config = getConfig(args);
+        const startDate = (args["start_date"] as string | undefined) ?? daysAgo(30);
+        const endDate = (args["end_date"] as string | undefined) ?? today();
+        const entries = await getAthleteFitness(config, { startDate, endDate });
+
+        if (!entries.length) {
+          return { content: [{ type: "text", text: "No fitness data found for the specified date range." }] };
+        }
+
+        const lines = entries.map((e) => {
+          const ctl = e.fitness != null ? e.fitness.toFixed(1) : "N/A";
+          const atl = e.fatigue != null ? e.fatigue.toFixed(1) : "N/A";
+          const tsb = e.form != null ? e.form.toFixed(1) : "N/A";
+          const ramp = e.rampRate != null ? e.rampRate.toFixed(1) : "N/A";
+          const eftp = e.eftp != null ? `${e.eftp.toFixed(0)}W` : "N/A";
+          const eftpKg = e.eftpPerKg != null ? `${e.eftpPerKg.toFixed(2)} W/kg` : "N/A";
+          const tl = e.training_load != null ? e.training_load.toFixed(0) : "N/A";
+          return [
+            `**${e.date ?? "N/A"}**`,
+            `  CTL (Fitness): ${ctl} | ATL (Fatigue): ${atl} | TSB (Form): ${tsb}`,
+            `  Ramp Rate: ${ramp} | eFTP: ${eftp} (${eftpKg}) | TL: ${tl}`,
+          ].join("\n");
+        });
+
+        return { content: [{ type: "text", text: lines.join("\n\n") }] };
       }
 
       case "get_note": {
