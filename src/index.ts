@@ -166,7 +166,7 @@ const TOOLS = [
       properties: {
         start_date_local: { type: "string", description: "Date/time in ISO 8601 format, e.g. 2024-06-01T08:00:00" },
         name: { type: "string", description: "Event name" },
-        description: { type: "string", description: "Event description. To create a structured workout, write it in Intervals.icu's Workout Builder plain-text syntax, e.g. \"- Warmup 10m 50%\\n\\n4x\\n- Hard 4m 105%\\n- Easy 2m 50%\\n\\n- Cooldown 5m 50%\\n\" — Intervals.icu parses this into the workout structure (steps, duration, zones) automatically." },
+        description: { type: "string", description: "Event description. To create a structured workout, write it in Intervals.icu's Workout Builder plain-text syntax — Intervals.icu parses this into the workout structure (steps, duration, zones) automatically. Syntax: each step is a line starting with '-', e.g. '-10m 50-60%' (duration as h/m/s combos like '1h20m', '3m30s', '20s'; intensity as a %FTP value/range, or a zone like 'z1'/'z4'). Append 'power=Ns' to set the power-smoothing window (power=10s for steady efforts, power=3s or power=1s for short hard efforts/sprints/kicks). HR-based targets: 'z4 90% hr'. Optional cadence suffix: '85-95rpm'. Repeats: put 'Nx' on its own line, then the repeated step lines, then a blank line before the next block. Example: \"- Warmup 10m 50%\\n\\n4x\\n- Hard 4m 105% power=10s\\n- Easy 2m 50%\\n\\n- Cooldown 5m 50%\\n\"" },
         category: { type: "string", description: "Event category: WORKOUT, NOTE, RACE_A, RACE_B, RACE_C (race priority A/B/C)" },
         type: { type: "string", description: "Activity type: Ride, Run, Swim, WeightTraining, etc." },
         race: { type: "boolean", description: "Mark as a race event (default: false)" },
@@ -189,7 +189,7 @@ const TOOLS = [
         event_id: { type: "string", description: "The event ID to update" },
         start_date_local: { type: "string", description: "New date/time (moves the event), e.g. 2024-06-05T08:00:00" },
         name: { type: "string", description: "New event name" },
-        description: { type: "string", description: "New description. Use Intervals.icu's Workout Builder plain-text syntax (e.g. \"- Warmup 10m 50%\\n\\n4x\\n- Hard 4m 105%\\n- Easy 2m 50%\\n\\n- Cooldown 5m 50%\\n\") to have Intervals.icu recompute the workout structure." },
+        description: { type: "string", description: "New description. Use Intervals.icu's Workout Builder plain-text syntax to have Intervals.icu recompute the workout structure — steps as '-<duration> <intensity>' lines (duration as h/m/s combos, intensity as %FTP or a zone like 'z1'), optional 'power=Ns' smoothing suffix, 'Nx' repeat blocks, HR targets ('z4 90% hr'), cadence suffix ('85-95rpm'). Example: \"- Warmup 10m 50%\\n\\n4x\\n- Hard 4m 105% power=10s\\n- Easy 2m 50%\\n\\n- Cooldown 5m 50%\\n\"" },
         category: { type: "string", description: "New category" },
         type: { type: "string", description: "New activity type" },
         race: { type: "boolean", description: "Toggle race flag" },
@@ -390,7 +390,7 @@ const TOOLS = [
             properties: {
               start_date_local: { type: "string", description: "ISO 8601 date/time" },
               name: { type: "string" },
-              description: { type: "string", description: "Use Workout Builder plain-text syntax to get a structured workout (e.g. \"- Warmup 10m 50%\\n\\n4x\\n- Hard 4m 105%\\n- Easy 2m 50%\\n\\n- Cooldown 5m 50%\\n\")" },
+              description: { type: "string", description: "Use Workout Builder plain-text syntax for a structured workout — '-<duration> <intensity>' step lines, 'Nx' repeat blocks, optional 'power=Ns' smoothing suffix, HR targets ('z4 90% hr'), cadence suffix ('85-95rpm'). Example: \"- Warmup 10m 50%\\n\\n4x\\n- Hard 4m 105% power=10s\\n- Easy 2m 50%\\n\\n- Cooldown 5m 50%\\n\"" },
               category: { type: "string" },
               type: { type: "string" },
               race: { type: "boolean" },
