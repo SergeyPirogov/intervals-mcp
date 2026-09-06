@@ -125,6 +125,7 @@ export interface EventInput {
   race?: boolean;
   distance?: number;
   sub_type?: string;
+  workout_doc?: unknown;
 }
 
 export const AthleteSchema = z.object({

@@ -172,6 +172,7 @@ const TOOLS = [
         race: { type: "boolean", description: "Mark as a race event (default: false)" },
         distance: { type: "number", description: "Distance in meters (e.g. 100000 for 100km)" },
         sub_type: { type: "string", description: "Race category/sub-type (e.g. A, B, C)" },
+        workout_doc: { type: "object", description: "Structured workout definition (Intervals.icu workout_doc format) to attach steps/intervals to this event" },
         athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
         api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
       },
@@ -194,6 +195,7 @@ const TOOLS = [
         race: { type: "boolean", description: "Toggle race flag" },
         distance: { type: "number", description: "Distance in meters (e.g. 100000 for 100km)" },
         sub_type: { type: "string", description: "Race category/sub-type (e.g. A, B, C)" },
+        workout_doc: { type: "object", description: "New structured workout definition (Intervals.icu workout_doc format)" },
         athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
         api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
       },
@@ -392,6 +394,7 @@ const TOOLS = [
               category: { type: "string" },
               type: { type: "string" },
               race: { type: "boolean" },
+              workout_doc: { type: "object", description: "Structured workout definition (Intervals.icu workout_doc format)" },
             },
           },
         },
@@ -595,6 +598,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           race: args["race"] as boolean | undefined,
           distance: args["distance"] as number | undefined,
           sub_type: args["sub_type"] as string | undefined,
+          workout_doc: args["workout_doc"],
         });
         return { content: [{ type: "text", text: `Created event:\n\n${formatEvent(event)}` }] };
       }
@@ -603,7 +607,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const eventId = z.string().parse(args["event_id"]);
         const config = getConfig(args);
         const input: Record<string, unknown> = {};
-        for (const key of ["name", "description", "start_date_local", "category", "type", "race", "distance", "sub_type"]) {
+        for (const key of ["name", "description", "start_date_local", "category", "type", "race", "distance", "sub_type", "workout_doc"]) {
           if (args[key] !== undefined) input[key] = args[key];
         }
         const event = await updateEvent(config, eventId, input);
