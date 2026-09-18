@@ -129,6 +129,7 @@ export interface EventInput {
   type?: string;
   distance?: number;
   sub_type?: string;
+  color?: string;
   workout_doc?: unknown;
 }
 

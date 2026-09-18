@@ -173,6 +173,7 @@ const TOOLS = [
         type: { type: "string", description: "Activity type: Ride, Run, Swim, WeightTraining, etc." },
         distance: { type: "number", description: "Distance in meters (e.g. 100000 for 100km)" },
         sub_type: { type: "string", description: "Race category/sub-type (e.g. A, B, C)" },
+        color: { type: "string", description: "Event color, e.g. '#1f77b4' (hex) or a named color like 'blue', 'green', 'sky'" },
         workout_doc: { type: "object", description: "Pre-computed Intervals.icu workout_doc (as returned by get_event_by_id/list_workouts on an existing structured workout) to copy verbatim onto this event. Hand-written partial docs won't render correctly — prefer setting `description` with the Workout Builder syntax and omitting this field so Intervals.icu computes it." },
         athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
         api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
@@ -196,6 +197,7 @@ const TOOLS = [
         type: { type: "string", description: "New activity type" },
         distance: { type: "number", description: "Distance in meters (e.g. 100000 for 100km)" },
         sub_type: { type: "string", description: "Race category/sub-type (e.g. A, B, C)" },
+        color: { type: "string", description: "Event color, e.g. '#1f77b4' (hex) or a named color like 'blue', 'green', 'sky'" },
         workout_doc: { type: "object", description: "Pre-computed Intervals.icu workout_doc to copy verbatim. Hand-written partial docs won't render correctly — prefer updating `description` with Workout Builder syntax instead." },
         athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
         api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
@@ -394,6 +396,7 @@ const TOOLS = [
               description: { type: "string", description: "Use Workout Builder plain-text syntax for a structured workout — '-<duration> <intensity>' step lines, 'Nx' repeat blocks, optional 'power=Ns' smoothing suffix, HR targets ('z4 90% hr'), cadence suffix ('85-95rpm'). Example: \"- Warmup 10m 50%\\n\\n4x\\n- Hard 4m 105% power=10s\\n- Easy 2m 50%\\n\\n- Cooldown 5m 50%\\n\"" },
               category: { type: "string" },
               type: { type: "string" },
+              color: { type: "string", description: "Event color, e.g. '#1f77b4' (hex) or a named color like 'blue', 'green', 'sky'" },
               workout_doc: { type: "object", description: "Pre-computed workout_doc to copy verbatim; prefer `description` with Workout Builder syntax instead" },
             },
           },
@@ -598,6 +601,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           type: args["type"] as string | undefined,
           distance: args["distance"] as number | undefined,
           sub_type: args["sub_type"] as string | undefined,
+          color: args["color"] as string | undefined,
           workout_doc: args["workout_doc"],
         });
         return { content: [{ type: "text", text: `Created event:\n\n${formatEvent(event)}` }] };
@@ -607,7 +611,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const eventId = z.string().parse(args["event_id"]);
         const config = getConfig(args);
         const input: Record<string, unknown> = {};
-        for (const key of ["name", "description", "start_date_local", "end_date_local", "category", "type", "distance", "sub_type", "workout_doc"]) {
+        for (const key of ["name", "description", "start_date_local", "end_date_local", "category", "type", "distance", "sub_type", "color", "workout_doc"]) {
           if (args[key] !== undefined) input[key] = args[key];
         }
         const event = await updateEvent(config, eventId, input);
