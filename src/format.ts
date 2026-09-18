@@ -6,27 +6,27 @@ function n(v: unknown, unit = ""): string {
 }
 
 export function formatActivity(a: Activity): string {
-  const startTime = a.startTime
-    ? new Date(a.startTime).toLocaleString()
+  const startTime = a.start_date_local
+    ? new Date(a.start_date_local).toLocaleString()
     : "Unknown";
 
   const lines = [
     `**${a.name ?? "Unnamed"}** (${a.id})`,
     `Type: ${n(a.type)} | Date: ${startTime}`,
-    `Distance: ${n(a.distance, " m")} | Duration: ${n(a.duration, " s")} | Moving: ${n(a.moving_time, " s")}`,
-    `Elevation: ${n(a.elevationGain, " m")}`,
+    `Distance: ${n(a.distance, " m")} | Duration: ${n(a.elapsed_time, " s")} | Moving: ${n(a.moving_time, " s")}`,
+    `Elevation: ${n(a.total_elevation_gain, " m")}`,
     "",
     "Power:",
-    `  Avg: ${n(a.avgPower, " W")} | Weighted Avg: ${n(a.icu_weighted_avg_watts, " W")} | FTP: ${n(a.icu_ftp, " W")}`,
-    `  Training Load: ${n(a.trainingLoad)} | Intensity: ${n(a.icu_intensity)}`,
+    `  Avg: ${n(a.icu_average_watts, " W")} | Weighted Avg: ${n(a.icu_weighted_avg_watts, " W")} | FTP: ${n(a.icu_ftp, " W")}`,
+    `  Training Load: ${n(a.icu_training_load)} | Intensity: ${n(a.icu_intensity)}`,
     "",
     "Heart Rate:",
-    `  Avg: ${n(a.avgHr, " bpm")} | Max: ${n(a.max_heartrate, " bpm")}`,
+    `  Avg: ${n(a.average_heartrate, " bpm")} | Max: ${n(a.max_heartrate, " bpm")}`,
     "",
     "Other:",
     `  Cadence: ${n(a.average_cadence, " rpm")} | Calories: ${n(a.calories)} | Speed: ${n(a.average_speed, " m/s")}`,
     `  Temp: ${n(a.average_temp, "°C")} | Trainer: ${a.trainer ? "Yes" : "No"}`,
-    `  RPE: ${n(a.perceived_exertion)}/10 | Feel: ${n(a.feel)}/10`,
+    `  RPE: ${n(a.icu_rpe ?? a.perceived_exertion)}/10 | Feel: ${n(a.feel)}/10`,
     "",
     "Fitness:",
     `  CTL: ${n(a.icu_ctl)} | ATL: ${n(a.icu_atl)} | TRIMP: ${n(a.trimp)}`,
