@@ -151,24 +151,21 @@ export const AthleteSchema = z.object({
 
 export type Athlete = z.infer<typeof AthleteSchema>;
 
-export const AthleteSummarySchema = z.object({
-  ctl: z.number().nullable().optional(),
-  atl: z.number().nullable().optional(),
-  tsb: z.number().nullable().optional(),
-  rampRate: z.number().nullable().optional(),
-  ctlLoad: z.number().nullable().optional(),
-  atlLoad: z.number().nullable().optional(),
+export const SportSettingsSchema = z.object({
+  types: z.array(z.string()).nullable().optional(),
+  ftp: z.number().nullable().optional(),
+  lthr: z.number().nullable().optional(),
+  max_hr: z.number().nullable().optional(),
+  threshold_pace: z.number().nullable().optional(),
+  power_zones: z.array(z.number()).nullable().optional(),
+  power_zone_names: z.array(z.string()).nullable().optional(),
+  hr_zones: z.array(z.number()).nullable().optional(),
+  hr_zone_names: z.array(z.string()).nullable().optional(),
+  pace_zones: z.array(z.number()).nullable().optional(),
+  pace_zone_names: z.array(z.string()).nullable().optional(),
 }).passthrough();
 
-export type AthleteSummary = z.infer<typeof AthleteSummarySchema>;
-
-export const ZonesSchema = z.object({
-  power: z.array(z.record(z.unknown())).optional(),
-  hr: z.array(z.record(z.unknown())).optional(),
-  pace: z.array(z.record(z.unknown())).optional(),
-}).passthrough();
-
-export type Zones = z.infer<typeof ZonesSchema>;
+export type SportSettings = z.infer<typeof SportSettingsSchema>;
 
 export const WorkoutSchema = z.object({
   id: z.union([z.string(), z.number()]).optional(),
@@ -372,14 +369,16 @@ export async function getAthleteProfile(config: ClientConfig): Promise<Athlete> 
   return AthleteSchema.parse(data);
 }
 
-export async function getAthleteZones(config: ClientConfig): Promise<Zones> {
-  const data = await request<unknown>(`/athlete/${config.athleteId}/zones`, config);
-  return ZonesSchema.parse(data);
+export async function getAthleteZones(config: ClientConfig): Promise<SportSettings[]> {
+  const data = await request<unknown[]>(`/athlete/${config.athleteId}/sport-settings`, config);
+  return z.array(SportSettingsSchema).parse(data);
 }
 
-export async function getAthleteSummary(config: ClientConfig): Promise<AthleteSummary> {
-  const data = await request<unknown>(`/athlete/${config.athleteId}/summary`, config);
-  return AthleteSummarySchema.parse(data);
+export async function getAthleteSummary(config: ClientConfig): Promise<AthleteFitness | undefined> {
+  const today = new Date().toISOString().slice(0, 10);
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const entries = await getAthleteFitness(config, { startDate: weekAgo, endDate: today });
+  return entries.at(-1);
 }
 
 export async function getWellnessDay(
@@ -465,10 +464,10 @@ export async function bulkDeleteEvents(
   eventIds: (string | number)[]
 ): Promise<void> {
   await mutate<undefined>(
-    "POST",
+    "PUT",
     `/athlete/${config.athleteId}/events/bulk-delete`,
     config,
-    eventIds
+    eventIds.map((id) => ({ id: Number(id) }))
   );
 }
 
@@ -493,7 +492,7 @@ export async function getAthleteFitness(
   const data = await request<unknown[]>(
     `/athlete/${config.athleteId}/athlete-summary.json`,
     config,
-    { oldest: params.startDate, newest: params.endDate, athleteId: config.athleteId }
+    { start: params.startDate, end: params.endDate }
   );
   const all = z.array(AthleteFitnessSchema).parse(data);
   return all.filter((e) => (e as Record<string, unknown>)["athlete_id"] === config.athleteId);

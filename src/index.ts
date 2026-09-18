@@ -37,6 +37,7 @@ import {
   formatWellness,
   formatEvent,
   formatIntervalRow,
+  formatSportZones,
 } from "./format.js";
 
 function getConfig(args: Record<string, unknown>): ClientConfig {
@@ -642,35 +643,26 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "get_athlete_zones": {
         const config = getConfig(args);
-        const zones = await getAthleteZones(config);
-        const lines: string[] = [];
-        const formatZones = (label: string, zoneList: Array<Record<string, unknown>> | undefined) => {
-          if (!zoneList?.length) return;
-          lines.push(`## ${label} Zones`, "");
-          zoneList.forEach((z, i) => {
-            const name = z["name"] ?? `Zone ${i + 1}`;
-            const min = z["min"] ?? z["from"] ?? "";
-            const max = z["max"] ?? z["to"] ?? "";
-            lines.push(`  Z${i + 1} ${name}: ${min}–${max}`);
-          });
-          lines.push("");
-        };
-        formatZones("Power", zones.power as Array<Record<string, unknown>> | undefined);
-        formatZones("Heart Rate", zones.hr as Array<Record<string, unknown>> | undefined);
-        formatZones("Pace", zones.pace as Array<Record<string, unknown>> | undefined);
-        if (!lines.length) lines.push("No zone data available.");
-        return { content: [{ type: "text", text: lines.join("\n") }] };
+        const sportSettings = await getAthleteZones(config);
+        if (!sportSettings.length) {
+          return { content: [{ type: "text", text: "No zone data available." }] };
+        }
+        const text = sportSettings.map(formatSportZones).join("\n\n---\n\n");
+        return { content: [{ type: "text", text }] };
       }
 
       case "get_athlete_summary": {
         const config = getConfig(args);
         const summary = await getAthleteSummary(config);
+        if (!summary) {
+          return { content: [{ type: "text", text: "No fitness data available." }] };
+        }
         const text = [
           "## Current Fitness Snapshot",
           "",
-          `CTL (Fitness):  ${summary.ctl ?? "N/A"}`,
-          `ATL (Fatigue):  ${summary.atl ?? "N/A"}`,
-          `TSB (Form):     ${summary.tsb ?? "N/A"}`,
+          `CTL (Fitness):  ${summary.fitness ?? "N/A"}`,
+          `ATL (Fatigue):  ${summary.fatigue ?? "N/A"}`,
+          `TSB (Form):     ${summary.form ?? "N/A"}`,
           `Ramp Rate:      ${summary.rampRate ?? "N/A"}`,
         ].join("\n");
         return { content: [{ type: "text", text }] };

@@ -1,4 +1,4 @@
-import type { Activity, Wellness, Event } from "./client.js";
+import type { Activity, Wellness, Event, SportSettings } from "./client.js";
 
 function n(v: unknown, unit = ""): string {
   if (v == null) return "N/A";
@@ -85,6 +85,58 @@ export function formatEvent(e: Event): string {
   ]
     .filter(Boolean)
     .join("\n");
+}
+
+function zoneRanges(
+  breakpoints: number[] | null | undefined,
+  names: string[] | null | undefined
+): { name: string; from: number; to: number | null }[] {
+  const count = names?.length ?? (breakpoints?.length ?? 0) + 1;
+  const ranges: { name: string; from: number; to: number | null }[] = [];
+  let from = 0;
+  for (let i = 0; i < count; i++) {
+    const raw = breakpoints && i < breakpoints.length ? breakpoints[i] : null;
+    // Intervals.icu caps the top zone with a 999 sentinel meaning "no upper bound".
+    const to = raw != null && raw < 900 ? raw : null;
+    ranges.push({ name: names?.[i] ?? `Z${i + 1}`, from, to });
+    if (to != null) from = to;
+  }
+  return ranges;
+}
+
+export function formatSportZones(s: SportSettings): string {
+  const title = s.types?.length ? s.types.join(", ") : "Default";
+  const lines = [`## ${title}`, ""];
+
+  if (s.power_zones?.length) {
+    lines.push(`Power Zones${s.ftp != null ? ` (FTP: ${s.ftp}W)` : ""}:`);
+    for (const z of zoneRanges(s.power_zones, s.power_zone_names)) {
+      const abs = s.ftp != null ? ` (${Math.round((s.ftp * z.from) / 100)}-${z.to != null ? Math.round((s.ftp * z.to) / 100) + "W" : "W+"})` : "";
+      const pct = z.to != null ? `${z.from}-${z.to}%` : `${z.from}%+`;
+      lines.push(`  ${z.name}: ${pct}${abs}`);
+    }
+    lines.push("");
+  }
+
+  if (s.hr_zones?.length) {
+    lines.push(`HR Zones${s.lthr != null ? ` (LTHR: ${s.lthr}bpm)` : ""}:`);
+    for (const z of zoneRanges(s.hr_zones, s.hr_zone_names)) {
+      const abs = s.lthr != null ? ` (${Math.round((s.lthr * z.from) / 100)}-${z.to != null ? Math.round((s.lthr * z.to) / 100) + "bpm" : "bpm+"})` : "";
+      const pct = z.to != null ? `${z.from}-${z.to}%` : `${z.from}%+`;
+      lines.push(`  ${z.name}: ${pct}${abs}`);
+    }
+    lines.push("");
+  }
+
+  if (s.pace_zones?.length) {
+    lines.push("Pace Zones (% of threshold pace):");
+    for (const z of zoneRanges(s.pace_zones, s.pace_zone_names)) {
+      const pct = z.to != null ? `${z.from}-${z.to}%` : `${z.from}%+`;
+      lines.push(`  ${z.name}: ${pct}`);
+    }
+  }
+
+  return lines.join("\n").trimEnd();
 }
 
 export function formatIntervalRow(interval: Record<string, unknown>, idx: number): string {
