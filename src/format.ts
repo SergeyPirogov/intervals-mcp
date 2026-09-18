@@ -70,7 +70,14 @@ export function formatWellness(date: string, w: Wellness): string {
 }
 
 export function formatEvent(e: Event): string {
-  const type = e.race ? "Race" : e.workout ? "Workout" : "Event";
+  const category = e.category ?? "";
+  const type = category.startsWith("RACE")
+    ? "Race"
+    : category === "WORKOUT"
+    ? "Workout"
+    : category === "NOTE" || e.show_as_note
+    ? "Note"
+    : "Event";
   const start = e.start_date_local ?? e.date ?? "Unknown";
   const dateLabel =
     e.end_date_local && e.end_date_local !== e.start_date_local
@@ -81,7 +88,6 @@ export function formatEvent(e: Event): string {
     `Type: ${type} | Date: ${dateLabel}`,
     e.category ? `Category: ${e.category}` : "",
     e.description ? `Description: ${e.description}` : "",
-    e.priority ? `Priority: ${e.priority}` : "",
   ]
     .filter(Boolean)
     .join("\n");

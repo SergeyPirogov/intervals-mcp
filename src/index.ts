@@ -220,7 +220,7 @@ const TOOLS = [
   },
   {
     name: "get_athlete_profile",
-    description: "Get athlete profile including FTP, LTHR, weight, VO2max and other settings.",
+    description: "Get athlete profile: name, sex, DOB, weight, resting HR, city/country. For FTP/LTHR/zones use get_athlete_zones.",
     inputSchema: {
       type: "object",
       properties: {
@@ -631,12 +631,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const lines = [
           `**${athlete.name ?? "Athlete"}** (${athlete.id ?? config.athleteId})`,
           athlete.email ? `Email: ${athlete.email}` : "",
-          `Sex: ${athlete.sex ?? "N/A"} | DOB: ${athlete.dob ?? "N/A"} | City: ${athlete.city ?? "N/A"}, ${athlete.country ?? "N/A"}`,
+          `Sex: ${athlete.sex ?? "N/A"} | DOB: ${athlete.icu_date_of_birth ?? "N/A"} | City: ${athlete.city ?? "N/A"}, ${athlete.country ?? "N/A"}`,
           "",
-          "Performance:",
-          `  FTP: ${athlete.icu_ftp ?? "N/A"} W | LTHR: ${athlete.icu_lthr ?? "N/A"} bpm`,
-          `  Weight: ${athlete.icu_weight ?? athlete.weight ?? "N/A"} kg | VO2max: ${athlete.icu_vo2max ?? "N/A"}`,
-          `  Resting HR: ${athlete.icu_resting_hr ?? "N/A"} bpm`,
+          `Weight: ${athlete.icu_weight ?? athlete.weight ?? "N/A"} kg | Resting HR: ${athlete.icu_resting_hr ?? "N/A"} bpm`,
+          "(FTP/LTHR/zones are per-sport — use get_athlete_zones for those)",
         ].filter(Boolean).join("\n");
         return { content: [{ type: "text", text: lines }] };
       }

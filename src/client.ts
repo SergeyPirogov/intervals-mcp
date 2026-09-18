@@ -110,9 +110,7 @@ export const EventSchema = z.object({
   show_as_note: z.boolean().nullable().optional(),
   name: z.string().nullable().optional(),
   description: z.string().nullable().optional(),
-  race: z.boolean().nullable().optional(),
-  workout: z.unknown().nullable().optional(),
-  priority: z.string().nullable().optional(),
+  color: z.string().nullable().optional(),
 }).passthrough();
 
 export type Event = z.infer<typeof EventSchema>;
@@ -141,14 +139,11 @@ export const AthleteSchema = z.object({
   email: z.string().nullable().optional(),
   sex: z.string().nullable().optional(),
   weight: z.number().nullable().optional(),
-  dob: z.string().nullable().optional(),
+  icu_date_of_birth: z.string().nullable().optional(),
   city: z.string().nullable().optional(),
   country: z.string().nullable().optional(),
-  icu_ftp: z.number().nullable().optional(),
-  icu_lthr: z.number().nullable().optional(),
   icu_resting_hr: z.number().nullable().optional(),
   icu_weight: z.number().nullable().optional(),
-  icu_vo2max: z.number().nullable().optional(),
 }).passthrough();
 
 export type Athlete = z.infer<typeof AthleteSchema>;
@@ -174,7 +169,7 @@ export const WorkoutSchema = z.object({
   name: z.string().nullable().optional(),
   description: z.string().nullable().optional(),
   type: z.string().nullable().optional(),
-  created: z.string().nullable().optional(),
+  updated: z.string().nullable().optional(),
 }).passthrough();
 
 export type Workout = z.infer<typeof WorkoutSchema>;
@@ -295,10 +290,7 @@ export async function getNotesByDate(
     { oldest: date, newest: date }
   );
   const events = z.array(EventSchema).parse(data);
-  return events.filter((e) => {
-    const raw = e as Record<string, unknown>;
-    return raw["category"] === "NOTE" || (!e.race && !e.workout);
-  });
+  return events.filter((e) => e.category === "NOTE" || e.show_as_note === true);
 }
 
 async function mutate<T>(
