@@ -127,7 +127,6 @@ export interface EventInput {
   end_date_local?: string;
   category?: string;
   type?: string;
-  race?: boolean;
   distance?: number;
   sub_type?: string;
   workout_doc?: unknown;
