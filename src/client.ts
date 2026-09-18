@@ -102,6 +102,10 @@ export type Wellness = z.infer<typeof WellnessSchema>;
 export const EventSchema = z.object({
   id: z.union([z.string(), z.number()]),
   date: z.string().optional(),
+  start_date_local: z.string().nullable().optional(),
+  end_date_local: z.string().nullable().optional(),
+  category: z.string().nullable().optional(),
+  show_as_note: z.boolean().nullable().optional(),
   name: z.string().nullable().optional(),
   description: z.string().nullable().optional(),
   race: z.boolean().nullable().optional(),
@@ -120,6 +124,7 @@ export interface EventInput {
   name?: string;
   description?: string;
   start_date_local?: string;
+  end_date_local?: string;
   category?: string;
   type?: string;
   race?: boolean;

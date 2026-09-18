@@ -71,9 +71,15 @@ export function formatWellness(date: string, w: Wellness): string {
 
 export function formatEvent(e: Event): string {
   const type = e.race ? "Race" : e.workout ? "Workout" : "Event";
+  const start = e.start_date_local ?? e.date ?? "Unknown";
+  const dateLabel =
+    e.end_date_local && e.end_date_local !== e.start_date_local
+      ? `${start} to ${e.end_date_local}`
+      : start;
   return [
     `**${e.name ?? "Unnamed"}** (${e.id})`,
-    `Type: ${type} | Date: ${e.date ?? "Unknown"}`,
+    `Type: ${type} | Date: ${dateLabel}`,
+    e.category ? `Category: ${e.category}` : "",
     e.description ? `Description: ${e.description}` : "",
     e.priority ? `Priority: ${e.priority}` : "",
   ]

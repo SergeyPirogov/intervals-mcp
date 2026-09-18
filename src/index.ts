@@ -165,9 +165,10 @@ const TOOLS = [
       required: ["start_date_local"],
       properties: {
         start_date_local: { type: "string", description: "Date/time in ISO 8601 format, e.g. 2024-06-01T08:00:00" },
+        end_date_local: { type: "string", description: "End date in ISO 8601 format for a multi-day event (e.g. a NOTE, HOLIDAY, SICK, or INJURED entry spanning several days), e.g. 2024-06-05" },
         name: { type: "string", description: "Event name" },
         description: { type: "string", description: "Event description. To create a structured workout, write it in Intervals.icu's Workout Builder plain-text syntax — Intervals.icu parses this into the workout structure (steps, duration, zones) automatically. Syntax: each step is a line starting with '-', e.g. '-10m 50-60%' (duration as h/m/s combos like '1h20m', '3m30s', '20s'; intensity as a %FTP value/range, or a zone like 'z1'/'z4'). Append 'power=Ns' to set the power-smoothing window (power=10s for steady efforts, power=3s or power=1s for short hard efforts/sprints/kicks). HR-based targets: 'z4 90% hr'. Optional cadence suffix: '85-95rpm'. Repeats: put 'Nx' on its own line, then the repeated step lines, then a blank line before the next block. Example: \"- Warmup 10m 50%\\n\\n4x\\n- Hard 4m 105% power=10s\\n- Easy 2m 50%\\n\\n- Cooldown 5m 50%\\n\"" },
-        category: { type: "string", description: "Event category: WORKOUT, NOTE, RACE_A, RACE_B, RACE_C (race priority A/B/C)" },
+        category: { type: "string", description: "Event category: WORKOUT, NOTE, RACE_A, RACE_B, RACE_C (race priority A/B/C), PLAN, HOLIDAY, SICK, INJURED, TARGET, and others" },
         type: { type: "string", description: "Activity type: Ride, Run, Swim, WeightTraining, etc." },
         race: { type: "boolean", description: "Mark as a race event (default: false)" },
         distance: { type: "number", description: "Distance in meters (e.g. 100000 for 100km)" },
@@ -188,6 +189,7 @@ const TOOLS = [
       properties: {
         event_id: { type: "string", description: "The event ID to update" },
         start_date_local: { type: "string", description: "New date/time (moves the event), e.g. 2024-06-05T08:00:00" },
+        end_date_local: { type: "string", description: "New end date for a multi-day event (e.g. a NOTE, HOLIDAY, SICK, or INJURED entry spanning several days), e.g. 2024-06-08" },
         name: { type: "string", description: "New event name" },
         description: { type: "string", description: "New description. Use Intervals.icu's Workout Builder plain-text syntax to have Intervals.icu recompute the workout structure — steps as '-<duration> <intensity>' lines (duration as h/m/s combos, intensity as %FTP or a zone like 'z1'), optional 'power=Ns' smoothing suffix, 'Nx' repeat blocks, HR targets ('z4 90% hr'), cadence suffix ('85-95rpm'). Example: \"- Warmup 10m 50%\\n\\n4x\\n- Hard 4m 105% power=10s\\n- Easy 2m 50%\\n\\n- Cooldown 5m 50%\\n\"" },
         category: { type: "string", description: "New category" },
@@ -593,6 +595,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           name: args["name"] as string | undefined,
           description: args["description"] as string | undefined,
           start_date_local: z.string().parse(args["start_date_local"]),
+          end_date_local: args["end_date_local"] as string | undefined,
           category: args["category"] as string | undefined,
           type: args["type"] as string | undefined,
           race: args["race"] as boolean | undefined,
@@ -607,7 +610,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const eventId = z.string().parse(args["event_id"]);
         const config = getConfig(args);
         const input: Record<string, unknown> = {};
-        for (const key of ["name", "description", "start_date_local", "category", "type", "race", "distance", "sub_type", "workout_doc"]) {
+        for (const key of ["name", "description", "start_date_local", "end_date_local", "category", "type", "race", "distance", "sub_type", "workout_doc"]) {
           if (args[key] !== undefined) input[key] = args[key];
         }
         const event = await updateEvent(config, eventId, input);
