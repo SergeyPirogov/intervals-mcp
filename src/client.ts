@@ -116,8 +116,8 @@ export const EventSchema = z.object({
 export type Event = z.infer<typeof EventSchema>;
 
 export const IntervalSchema = z.object({
-  icu_intervals: z.array(z.record(z.unknown())).optional(),
-  icu_groups: z.array(z.record(z.unknown())).optional(),
+  icu_intervals: z.array(z.record(z.unknown())).nullable().optional(),
+  icu_groups: z.array(z.record(z.unknown())).nullable().optional(),
 }).passthrough();
 
 export interface EventInput {
@@ -413,12 +413,16 @@ export async function getActivityStreams(
 ): Promise<Record<string, unknown[]>> {
   const params: Record<string, string | number | boolean> = {};
   if (types?.length) params["types"] = types.join(",");
-  const data = await request<unknown>(
+  const data = await request<Array<{ type?: string; data?: unknown[] }>>(
     `/activity/${activityId}/streams.json`,
     config,
     params
   );
-  return data as Record<string, unknown[]>;
+  const result: Record<string, unknown[]> = {};
+  for (const stream of data) {
+    if (stream.type) result[stream.type] = stream.data ?? [];
+  }
+  return result;
 }
 
 export async function getActivityPowerCurves(
