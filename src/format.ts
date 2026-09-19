@@ -26,7 +26,7 @@ export function formatActivity(a: Activity): string {
     "Other:",
     `  Cadence: ${n(a.average_cadence, " rpm")} | Calories: ${n(a.calories)} | Speed: ${n(a.average_speed, " m/s")}`,
     `  Temp: ${n(a.average_temp, "°C")} | Trainer: ${a.trainer ? "Yes" : "No"}`,
-    `  RPE: ${n(a.icu_rpe ?? a.perceived_exertion)}/10 | Feel: ${n(a.feel)}/10`,
+    `  RPE: ${n(a.icu_rpe ?? a.perceived_exertion)}/10 | Feel: ${n(a.feel)}/5`,
     "",
     "Fitness:",
     `  CTL: ${n(a.icu_ctl)} | ATL: ${n(a.icu_atl)} | TRIMP: ${n(a.trimp)}`,
