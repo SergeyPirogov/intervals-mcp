@@ -125,20 +125,24 @@ export function formatSportZones(s: SportSettings): string {
   }
 
   if (s.hr_zones?.length) {
+    // Unlike power_zones (%FTP), hr_zones stores absolute bpm thresholds directly.
     lines.push(`HR Zones${s.lthr != null ? ` (LTHR: ${s.lthr}bpm)` : ""}:`);
     for (const z of zoneRanges(s.hr_zones, s.hr_zone_names)) {
-      const abs = s.lthr != null ? ` (${Math.round((s.lthr * z.from) / 100)}-${z.to != null ? Math.round((s.lthr * z.to) / 100) + "bpm" : "bpm+"})` : "";
-      const pct = z.to != null ? `${z.from}-${z.to}%` : `${z.from}%+`;
-      lines.push(`  ${z.name}: ${pct}${abs}`);
+      const pctFrom = s.lthr != null ? Math.round((z.from / s.lthr) * 100) : null;
+      const pctTo = s.lthr != null && z.to != null ? Math.round((z.to / s.lthr) * 100) : null;
+      const pct = pctFrom != null ? ` (${pctFrom}${pctTo != null ? "-" + pctTo : ""}% LTHR)` : "";
+      const bpm = z.to != null ? `${z.from}-${z.to} bpm` : `${z.from}+ bpm`;
+      lines.push(`  ${z.name}: ${bpm}${pct}`);
     }
     lines.push("");
   }
 
   if (s.pace_zones?.length) {
-    lines.push("Pace Zones (% of threshold pace):");
+    // Same as hr_zones — absolute thresholds, not percentages of threshold_pace.
+    lines.push(`Pace Zones${s.threshold_pace != null ? ` (Threshold: ${s.threshold_pace} m/s)` : ""}:`);
     for (const z of zoneRanges(s.pace_zones, s.pace_zone_names)) {
-      const pct = z.to != null ? `${z.from}-${z.to}%` : `${z.from}%+`;
-      lines.push(`  ${z.name}: ${pct}`);
+      const range = z.to != null ? `${z.from}-${z.to} m/s` : `${z.from}+ m/s`;
+      lines.push(`  ${z.name}: ${range}`);
     }
   }
 
