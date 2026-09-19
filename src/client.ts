@@ -249,7 +249,7 @@ export async function getWellness(
     const result: Record<string, Wellness> = {};
     for (const entry of data) {
       const parsed = WellnessSchema.parse(entry);
-      const key = (entry as Record<string, unknown>)["date"] as string ?? parsed.id ?? String(Object.keys(result).length);
+      const key = parsed.id ?? String(Object.keys(result).length);
       result[key] = parsed;
     }
     return result;

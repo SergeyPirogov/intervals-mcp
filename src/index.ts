@@ -54,20 +54,27 @@ function getConfig(args: Record<string, unknown>): ClientConfig {
   return { apiKey, athleteId };
 }
 
+function toDateStr(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 function today(): string {
-  return new Date().toISOString().slice(0, 10);
+  return toDateStr(new Date());
 }
 
 function daysAgo(n: number): string {
   const d = new Date();
   d.setDate(d.getDate() - n);
-  return d.toISOString().slice(0, 10);
+  return toDateStr(d);
 }
 
 function daysFromNow(n: number): string {
   const d = new Date();
   d.setDate(d.getDate() + n);
-  return d.toISOString().slice(0, 10);
+  return toDateStr(d);
 }
 
 const TOOLS = [
@@ -172,7 +179,7 @@ const TOOLS = [
         category: { type: "string", description: "Event category: WORKOUT, NOTE, RACE_A, RACE_B, RACE_C (race priority A/B/C — this is what makes it a race, there is no separate race flag), PLAN, HOLIDAY, SICK, INJURED, TARGET, and others" },
         type: { type: "string", description: "Activity type: Ride, Run, Swim, WeightTraining, etc." },
         distance: { type: "number", description: "Distance in meters (e.g. 100000 for 100km)" },
-        sub_type: { type: "string", description: "Race category/sub-type (e.g. A, B, C)" },
+        sub_type: { type: "string", description: "One of NONE, COMMUTE, WARMUP, COOLDOWN, RACE. Not race priority — that's set via category (RACE_A/RACE_B/RACE_C)." },
         color: { type: "string", description: "Event color, e.g. '#1f77b4' (hex) or a named color like 'blue', 'green', 'sky'" },
         workout_doc: { type: "object", description: "Pre-computed Intervals.icu workout_doc (as returned by get_event_by_id/list_workouts on an existing structured workout) to copy verbatim onto this event. Hand-written partial docs won't render correctly — prefer setting `description` with the Workout Builder syntax and omitting this field so Intervals.icu computes it." },
         athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
@@ -196,7 +203,7 @@ const TOOLS = [
         category: { type: "string", description: "New category" },
         type: { type: "string", description: "New activity type" },
         distance: { type: "number", description: "Distance in meters (e.g. 100000 for 100km)" },
-        sub_type: { type: "string", description: "Race category/sub-type (e.g. A, B, C)" },
+        sub_type: { type: "string", description: "One of NONE, COMMUTE, WARMUP, COOLDOWN, RACE. Not race priority — that's set via category (RACE_A/RACE_B/RACE_C)." },
         color: { type: "string", description: "Event color, e.g. '#1f77b4' (hex) or a named color like 'blue', 'green', 'sky'" },
         workout_doc: { type: "object", description: "Pre-computed Intervals.icu workout_doc to copy verbatim. Hand-written partial docs won't render correctly — prefer updating `description` with Workout Builder syntax instead." },
         athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
