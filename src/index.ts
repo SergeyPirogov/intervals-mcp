@@ -30,6 +30,8 @@ import {
   bulkCreateEvents,
   bulkDeleteEvents,
   getAthleteFitness,
+  getActivityMessages,
+  addActivityMessage,
   type ClientConfig,
 } from "./client.js";
 import {
@@ -38,6 +40,7 @@ import {
   formatEvent,
   formatIntervalRow,
   formatSportZones,
+  formatMessage,
 } from "./format.js";
 
 function getConfig(args: Record<string, unknown>): ClientConfig {
@@ -327,6 +330,33 @@ const TOOLS = [
       required: ["activity_id"],
       properties: {
         activity_id: { type: "string", description: "The activity ID" },
+        athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
+        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
+      },
+    },
+  },
+  {
+    name: "get_activity_messages",
+    description: "Get the comments/notes left on a specific activity (the chat thread shown under an activity in Intervals.icu, e.g. coach feedback).",
+    inputSchema: {
+      type: "object",
+      required: ["activity_id"],
+      properties: {
+        activity_id: { type: "string", description: "The activity ID" },
+        athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
+        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
+      },
+    },
+  },
+  {
+    name: "add_activity_message",
+    description: "Post a comment/note on a specific activity (adds to the activity's chat thread in Intervals.icu).",
+    inputSchema: {
+      type: "object",
+      required: ["activity_id", "content"],
+      properties: {
+        activity_id: { type: "string", description: "The activity ID" },
+        content: { type: "string", description: "Comment text to post" },
         athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
         api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
       },
@@ -713,6 +743,23 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const config = getConfig(args);
         const curves = await getActivityPowerCurves(config, activityId);
         return { content: [{ type: "text", text: `Power curves for activity ${activityId}:\n\n${JSON.stringify(curves, null, 2)}` }] };
+      }
+
+      case "get_activity_messages": {
+        const activityId = z.string().parse(args["activity_id"]);
+        const config = getConfig(args);
+        const messages = await getActivityMessages(config, activityId);
+        if (!messages.length) return { content: [{ type: "text", text: "No comments on this activity." }] };
+        const text = messages.map(formatMessage).join("\n");
+        return { content: [{ type: "text", text }] };
+      }
+
+      case "add_activity_message": {
+        const activityId = z.string().parse(args["activity_id"]);
+        const content = z.string().parse(args["content"]);
+        const config = getConfig(args);
+        await addActivityMessage(config, activityId, content);
+        return { content: [{ type: "text", text: `Comment added to activity ${activityId}.` }] };
       }
 
       case "list_workouts": {

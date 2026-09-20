@@ -236,6 +236,33 @@ export async function getActivityIntervals(
   return IntervalSchema.parse(data);
 }
 
+export const MessageSchema = z.object({
+  id: z.number().optional(),
+  athlete_id: z.string().nullable().optional(),
+  name: z.string().nullable().optional(),
+  created: z.string().nullable().optional(),
+  type: z.string().nullable().optional(),
+  content: z.string().nullable().optional(),
+  attachment_url: z.string().nullable().optional(),
+});
+export type Message = z.infer<typeof MessageSchema>;
+
+export async function getActivityMessages(
+  config: ClientConfig,
+  activityId: string
+): Promise<Message[]> {
+  const data = await request<unknown[]>(`/activity/${activityId}/messages`, config);
+  return z.array(MessageSchema).parse(data);
+}
+
+export async function addActivityMessage(
+  config: ClientConfig,
+  activityId: string,
+  content: string
+): Promise<void> {
+  await mutate<unknown>("POST", `/activity/${activityId}/messages`, config, { content });
+}
+
 export async function getWellness(
   config: ClientConfig,
   params: { startDate: string; endDate: string }

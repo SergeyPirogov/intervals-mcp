@@ -1,4 +1,4 @@
-import type { Activity, Wellness, Event, SportSettings } from "./client.js";
+import type { Activity, Wellness, Event, SportSettings, Message } from "./client.js";
 
 function n(v: unknown, unit = ""): string {
   if (v == null) return "N/A";
@@ -91,6 +91,11 @@ export function formatEvent(e: Event): string {
   ]
     .filter(Boolean)
     .join("\n");
+}
+
+export function formatMessage(m: Message): string {
+  const when = m.created ? new Date(m.created).toLocaleString() : "Unknown time";
+  return `**${m.name ?? "Unknown"}** (${when}): ${m.content ?? ""}`;
 }
 
 function zoneRanges(
