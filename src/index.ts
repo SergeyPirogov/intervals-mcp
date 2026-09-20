@@ -32,6 +32,8 @@ import {
   getAthleteFitness,
   getActivityMessages,
   addActivityMessage,
+  deleteActivityMessage,
+  updateActivityMessage,
   type ClientConfig,
 } from "./client.js";
 import {
@@ -357,6 +359,35 @@ const TOOLS = [
       properties: {
         activity_id: { type: "string", description: "The activity ID" },
         content: { type: "string", description: "Comment text to post" },
+        athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
+        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
+      },
+    },
+  },
+  {
+    name: "update_activity_message",
+    description: "Edit a comment/note on an activity. Intervals.icu has no API to edit message content in place, so this deletes the old message and posts a new one with the updated text — the old message will show as \"(deleted)\" and the edited one will appear as a new message at the current time. Use get_activity_messages to find the message_id.",
+    inputSchema: {
+      type: "object",
+      required: ["activity_id", "message_id", "content"],
+      properties: {
+        activity_id: { type: "string", description: "The activity ID" },
+        message_id: { type: "number", description: "ID of the message to edit (from get_activity_messages)" },
+        content: { type: "string", description: "New comment text" },
+        athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
+        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
+      },
+    },
+  },
+  {
+    name: "delete_activity_message",
+    description: "Delete a comment/note from an activity's chat thread. The message is soft-deleted (shows as \"(deleted)\") rather than removed entirely. Use get_activity_messages to find the message_id.",
+    inputSchema: {
+      type: "object",
+      required: ["activity_id", "message_id"],
+      properties: {
+        activity_id: { type: "string", description: "The activity ID" },
+        message_id: { type: "number", description: "ID of the message to delete (from get_activity_messages)" },
         athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
         api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
       },
@@ -765,6 +796,23 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const config = getConfig(args);
         await addActivityMessage(config, activityId, content);
         return { content: [{ type: "text", text: `Comment added to activity ${activityId}.` }] };
+      }
+
+      case "update_activity_message": {
+        const activityId = z.string().parse(args["activity_id"]);
+        const messageId = z.number().parse(args["message_id"]);
+        const content = z.string().parse(args["content"]);
+        const config = getConfig(args);
+        await updateActivityMessage(config, activityId, messageId, content);
+        return { content: [{ type: "text", text: `Message ${messageId} on activity ${activityId} replaced with: "${content}"` }] };
+      }
+
+      case "delete_activity_message": {
+        const activityId = z.string().parse(args["activity_id"]);
+        const messageId = z.number().parse(args["message_id"]);
+        const config = getConfig(args);
+        await deleteActivityMessage(config, activityId, messageId);
+        return { content: [{ type: "text", text: `Message ${messageId} deleted from activity ${activityId}.` }] };
       }
 
       case "list_workouts": {

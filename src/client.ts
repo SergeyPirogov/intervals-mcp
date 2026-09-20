@@ -100,6 +100,7 @@ export const ActivitySchema = z.object({
   power_meter: z.string().nullable().optional(),
   source: z.string().nullable().optional(),
   compliance: z.number().nullable().optional(),
+  icu_chat_id: z.number().nullable().optional(),
 }).passthrough();
 
 export type Activity = z.infer<typeof ActivitySchema>;
@@ -311,6 +312,30 @@ export async function addActivityMessage(
   content: string
 ): Promise<void> {
   await mutate<unknown>("POST", `/activity/${activityId}/messages`, config, { content });
+}
+
+// Intervals.icu has no endpoint to edit a message's content in place — only
+// delete and re-add. Callers wanting an "edit" should use updateActivityMessage,
+// which does both and leaves the old message showing as deleted.
+export async function deleteActivityMessage(
+  config: ClientConfig,
+  activityId: string,
+  messageId: number
+): Promise<void> {
+  const activity = await getActivityDetails(config, activityId);
+  const chatId = activity.icu_chat_id;
+  if (chatId == null) throw new Error(`Activity ${activityId} has no chat/messages.`);
+  await mutate<undefined>("DELETE", `/chats/${chatId}/messages/${messageId}`, config);
+}
+
+export async function updateActivityMessage(
+  config: ClientConfig,
+  activityId: string,
+  messageId: number,
+  content: string
+): Promise<void> {
+  await deleteActivityMessage(config, activityId, messageId);
+  await addActivityMessage(config, activityId, content);
 }
 
 export async function getWellness(
