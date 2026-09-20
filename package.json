@@ -1,7 +1,7 @@
 {
   "name": "intervals-icu-mcp-server",
-  "version": "0.2.1",
-  "description": "MCP server for Intervals.icu — 24 tools for activities, wellness, calendar events, workouts and more",
+  "version": "0.3.0",
+  "description": "MCP server for Intervals.icu — 26 tools for activities, wellness, calendar events, workouts and more",
   "type": "module",
   "bin": {
     "intervals-icu-mcp": "dist/index.js"
