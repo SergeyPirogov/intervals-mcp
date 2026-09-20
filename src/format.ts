@@ -5,6 +5,13 @@ function n(v: unknown, unit = ""): string {
   return `${v}${unit}`;
 }
 
+function fmtDuration(secs: number | null | undefined): string {
+  if (secs == null) return "N/A";
+  const h = Math.floor(secs / 3600);
+  const m = Math.round((secs % 3600) / 60);
+  return h > 0 ? `${h}h${m}m` : `${m}m`;
+}
+
 export function formatActivity(a: Activity): string {
   const startTime = a.start_date_local
     ? new Date(a.start_date_local).toLocaleString()
@@ -14,23 +21,47 @@ export function formatActivity(a: Activity): string {
     `**${a.name ?? "Unnamed"}** (${a.id})`,
     `Type: ${n(a.type)} | Date: ${startTime}`,
     `Distance: ${n(a.distance, " m")} | Duration: ${n(a.elapsed_time, " s")} | Moving: ${n(a.moving_time, " s")}`,
-    `Elevation: ${n(a.total_elevation_gain, " m")}`,
+    `Elevation: +${n(a.total_elevation_gain, " m")} / -${n(a.total_elevation_loss, " m")} | Altitude: ${n(a.min_altitude, " m")}-${n(a.max_altitude, " m")}`,
     "",
     "Power:",
     `  Avg: ${n(a.icu_average_watts, " W")} | Weighted Avg: ${n(a.icu_weighted_avg_watts, " W")} | FTP: ${n(a.icu_ftp, " W")}`,
-    `  Training Load: ${n(a.icu_training_load)} | Intensity: ${n(a.icu_intensity)}`,
+    `  Training Load: ${n(a.icu_training_load)} | Intensity: ${n(a.icu_intensity)} | VI: ${n(a.icu_variability_index)}`,
+    `  Critical Power: ${n(a.icu_pm_cp, " W")} | Rolling FTP: ${n(a.icu_rolling_ftp, " W")} | Energy: ${a.icu_joules != null ? `${Math.round(a.icu_joules / 1000)} kJ` : "N/A"}`,
     "",
     "Heart Rate:",
     `  Avg: ${n(a.average_heartrate, " bpm")} | Max: ${n(a.max_heartrate, " bpm")}`,
+    `  Decoupling: ${n(a.decoupling, "%")} | Efficiency Factor: ${n(a.icu_efficiency_factor)} | Pw:Hr: ${n(a.icu_power_hr)}`,
+  ];
+
+  if (a.icu_hrr?.hrr != null) {
+    lines.push(`  HR Recovery: -${n(a.icu_hrr.hrr, " bpm")} (${n(a.icu_hrr.start_bpm)} → ${n(a.icu_hrr.end_bpm)} bpm)`);
+  }
+
+  if (a.icu_zone_times?.length || a.icu_hr_zone_times?.length) {
+    lines.push("", "Zones:");
+    if (a.icu_zone_times?.length) {
+      lines.push(`  Power: ${a.icu_zone_times.map((z) => `${z.id} ${fmtDuration(z.secs)}`).join(" | ")}`);
+    }
+    if (a.icu_hr_zone_times?.length) {
+      lines.push(`  HR: ${a.icu_hr_zone_times.map((secs, i) => `Z${i + 1} ${fmtDuration(secs)}`).join(" | ")}`);
+    }
+  }
+
+  lines.push(
     "",
     "Other:",
-    `  Cadence: ${n(a.average_cadence, " rpm")} | Calories: ${n(a.calories)} | Speed: ${n(a.average_speed, " m/s")}`,
+    `  Cadence: ${n(a.average_cadence, " rpm")} | Calories: ${n(a.calories)} | Speed: ${n(a.average_speed, " m/s")} (max ${n(a.max_speed, " m/s")})`,
     `  Temp: ${n(a.average_temp, "°C")} | Trainer: ${a.trainer ? "Yes" : "No"}`,
     `  RPE: ${n(a.icu_rpe ?? a.perceived_exertion)}/10 | Feel: ${n(a.feel)}/5`,
     "",
     "Fitness:",
-    `  CTL: ${n(a.icu_ctl)} | ATL: ${n(a.icu_atl)} | TRIMP: ${n(a.trimp)}`,
-  ];
+    `  CTL: ${n(a.icu_ctl)} | ATL: ${n(a.icu_atl)} | TRIMP: ${n(a.trimp)} | Polarization Index: ${n(a.polarization_index)}`,
+    `  Power Load: ${n(a.power_load)} | HR Load: ${n(a.hr_load)} | Strain: ${n(a.strain_score)}`,
+    "",
+    "Equipment:",
+    `  Gear: ${n(a.gear?.name)} | Device: ${n(a.device_name)} | Power Meter: ${n(a.power_meter)}`,
+    `  Source: ${n(a.source)} | Compliance: ${a.compliance != null ? `${a.compliance}%` : "N/A"}`,
+  );
 
   if (a.description) lines.push("", `Description: ${a.description}`);
 
