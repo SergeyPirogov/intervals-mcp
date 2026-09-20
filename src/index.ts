@@ -699,6 +699,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           `ATL (Fatigue):  ${summary.fatigue ?? "N/A"}`,
           `TSB (Form):     ${summary.form ?? "N/A"}`,
           `Ramp Rate:      ${summary.rampRate ?? "N/A"}`,
+          "",
+          "## Last 7 Days",
+          "",
+          `Activities: ${summary.count ?? "N/A"} | Training Load: ${summary.training_load ?? "N/A"}`,
+          `Moving Time: ${summary.moving_time != null ? `${(summary.moving_time / 3600).toFixed(1)}h` : "N/A"} | Distance: ${summary.distance != null ? `${(summary.distance / 1000).toFixed(1)} km` : "N/A"} | Calories: ${summary.calories ?? "N/A"}`,
         ].join("\n");
         return { content: [{ type: "text", text }] };
       }
@@ -766,9 +771,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const config = getConfig(args);
         const workouts = await listWorkouts(config);
         if (!workouts.length) return { content: [{ type: "text", text: "No workouts in library." }] };
-        const text = workouts.map(w =>
-          [`**${w.name ?? "Unnamed"}** (${w.id})`, w.type ? `Type: ${w.type}` : "", w.description ? `${w.description}` : ""].filter(Boolean).join("\n")
-        ).join("\n\n---\n\n");
+        const text = workouts.map(w => {
+          const duration = w.moving_time != null ? `${Math.round(w.moving_time / 60)}min` : "N/A";
+          const kj = w.joules != null ? `${Math.round(w.joules / 1000)} kJ` : "N/A";
+          return [
+            `**${w.name ?? "Unnamed"}** (${w.id})`,
+            w.type ? `Type: ${w.type} | Duration: ${duration} | Load: ${w.icu_training_load ?? "N/A"} | Energy: ${kj}` : "",
+            w.description ? `${w.description}` : "",
+          ].filter(Boolean).join("\n");
+        }).join("\n\n---\n\n");
         return { content: [{ type: "text", text }] };
       }
 

@@ -72,14 +72,14 @@ export function formatWellness(date: string, w: Wellness): string {
   const sleepHours =
     w.sleepSecs != null ? (w.sleepSecs / 3600).toFixed(1) + " h" : "N/A";
 
-  return [
+  const lines = [
     `**${date}**`,
     "",
     "Training:",
-    `  CTL: ${n(w.ctl)} | ATL: ${n(w.atl)}`,
+    `  CTL: ${n(w.ctl)} | ATL: ${n(w.atl)} | Ramp Rate: ${n(w.rampRate)}`,
     "",
     "Vitals:",
-    `  Weight: ${n(w.weight, " kg")} | Resting HR: ${n(w.restingHR, " bpm")}`,
+    `  Weight: ${n(w.weight, " kg")} | Resting HR: ${n(w.restingHR, " bpm")} | Avg Sleeping HR: ${n(w.avgSleepingHR, " bpm")}`,
     `  HRV: ${n(w.hrv)} | HRV SDNN: ${n(w.hrvSDNN)}`,
     `  SpO2: ${n(w.spO2, "%")} | VO2max: ${n(w.vo2max)} | Body Fat: ${n(w.bodyFat, "%")}`,
     "",
@@ -93,11 +93,19 @@ export function formatWellness(date: string, w: Wellness): string {
     "",
     "Nutrition:",
     `  Calories: ${n(w.kcalConsumed, " kcal")} | Steps: ${n(w.steps)}`,
-    w.comments ? `\nComments: ${w.comments}` : "",
-  ]
-    .filter((l) => l !== undefined)
-    .join("\n")
-    .trimEnd();
+  ];
+
+  if (w.sportInfo?.length) {
+    lines.push(
+      "",
+      "Sport Fitness (eFTP / W' / pMax):",
+      ...w.sportInfo.map((s) => `  ${s.type ?? "Unknown"}: ${n(s.eftp, " W")} / ${n(s.wPrime, " J")} / ${n(s.pMax, " W")}`)
+    );
+  }
+
+  if (w.comments) lines.push("", `Comments: ${w.comments}`);
+
+  return lines.join("\n").trimEnd();
 }
 
 export function formatEvent(e: Event): string {
@@ -114,14 +122,22 @@ export function formatEvent(e: Event): string {
     e.end_date_local && e.end_date_local !== e.start_date_local
       ? `${start} to ${e.end_date_local}`
       : start;
-  return [
+
+  const lines = [
     `**${e.name ?? "Unnamed"}** (${e.id})`,
     `Type: ${type} | Date: ${dateLabel}`,
     e.category ? `Category: ${e.category}` : "",
-    e.description ? `Description: ${e.description}` : "",
-  ]
-    .filter(Boolean)
-    .join("\n");
+  ];
+
+  if (e.type || e.moving_time != null || e.icu_training_load != null || e.icu_intensity != null) {
+    lines.push(
+      `Sport: ${n(e.type)} | Planned Duration: ${e.moving_time != null ? fmtDuration(e.moving_time) : "N/A"} | Planned Load: ${n(e.icu_training_load)} | Intensity: ${n(e.icu_intensity)}`
+    );
+  }
+  if (e.paired_activity_id) lines.push(`Completed as: ${e.paired_activity_id}`);
+  if (e.description) lines.push(`Description: ${e.description}`);
+
+  return lines.filter(Boolean).join("\n");
 }
 
 export function formatMessage(m: Message): string {
@@ -180,6 +196,15 @@ export function formatSportZones(s: SportSettings): string {
       const range = z.to != null ? `${z.from}-${z.to} m/s` : `${z.from}+ m/s`;
       lines.push(`  ${z.name}: ${range}`);
     }
+    lines.push("");
+  }
+
+  if (s.w_prime != null || s.sweet_spot_min != null) {
+    lines.push(`Power Model: W' ${n(s.w_prime, " J")} | Sweet Spot ${n(s.sweet_spot_min, "%")}-${n(s.sweet_spot_max, "%")}`);
+  }
+
+  if (s.best_effort_distances?.length) {
+    lines.push(`Best Effort Distances: ${s.best_effort_distances.join(", ")} m`);
   }
 
   return lines.join("\n").trimEnd();
@@ -196,11 +221,14 @@ export function formatIntervalRow(interval: Record<string, unknown>, idx: number
   const avgHr = interval["average_heartrate"] as number ?? 0;
   const maxHr = interval["max_heartrate"] as number ?? 0;
   const tl = interval["training_load"] as number ?? 0;
+  const intensity = interval["intensity"] as number | undefined;
+  const vi = interval["w5s_variability"] as number | undefined;
+  const decoupling = interval["decoupling"] as number | undefined;
 
   return [
     `[${idx}] ${label} (${type})`,
     `  Duration: ${elapsed}s | Distance: ${distance}m`,
-    `  Power: avg ${avgW}W, w.avg ${wAvg}W, max ${maxW}W | TL: ${tl}`,
-    `  HR: avg ${avgHr}, max ${maxHr} bpm`,
+    `  Power: avg ${avgW}W, w.avg ${wAvg}W, max ${maxW}W | TL: ${tl} | Intensity: ${n(intensity)} | VI: ${n(vi)}`,
+    `  HR: avg ${avgHr}, max ${maxHr} bpm | Decoupling: ${n(decoupling, "%")}`,
   ].join("\n");
 }

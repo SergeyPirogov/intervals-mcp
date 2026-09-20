@@ -127,6 +127,14 @@ export const WellnessSchema = z.object({
   bodyFat: z.number().nullable().optional(),
   spO2: z.number().nullable().optional(),
   comments: z.string().nullable().optional(),
+  rampRate: z.number().nullable().optional(),
+  avgSleepingHR: z.number().nullable().optional(),
+  sportInfo: z.array(z.object({
+    type: z.string().optional(),
+    eftp: z.number().nullable().optional(),
+    wPrime: z.number().nullable().optional(),
+    pMax: z.number().nullable().optional(),
+  })).nullable().optional(),
 }).passthrough();
 
 export type Wellness = z.infer<typeof WellnessSchema>;
@@ -141,6 +149,11 @@ export const EventSchema = z.object({
   name: z.string().nullable().optional(),
   description: z.string().nullable().optional(),
   color: z.string().nullable().optional(),
+  type: z.string().nullable().optional(),
+  moving_time: z.number().nullable().optional(),
+  icu_training_load: z.number().nullable().optional(),
+  icu_intensity: z.number().nullable().optional(),
+  paired_activity_id: z.string().nullable().optional(),
 }).passthrough();
 
 export type Event = z.infer<typeof EventSchema>;
@@ -190,6 +203,10 @@ export const SportSettingsSchema = z.object({
   hr_zone_names: z.array(z.string()).nullable().optional(),
   pace_zones: z.array(z.number()).nullable().optional(),
   pace_zone_names: z.array(z.string()).nullable().optional(),
+  w_prime: z.number().nullable().optional(),
+  sweet_spot_min: z.number().nullable().optional(),
+  sweet_spot_max: z.number().nullable().optional(),
+  best_effort_distances: z.array(z.number()).nullable().optional(),
 }).passthrough();
 
 export type SportSettings = z.infer<typeof SportSettingsSchema>;
@@ -200,6 +217,9 @@ export const WorkoutSchema = z.object({
   description: z.string().nullable().optional(),
   type: z.string().nullable().optional(),
   updated: z.string().nullable().optional(),
+  moving_time: z.number().nullable().optional(),
+  icu_training_load: z.number().nullable().optional(),
+  joules: z.number().nullable().optional(),
 }).passthrough();
 
 export type Workout = z.infer<typeof WorkoutSchema>;
@@ -536,6 +556,10 @@ export const AthleteFitnessSchema = z.object({
   eftp: z.number().nullable().optional(),
   eftpPerKg: z.number().nullable().optional(),
   weight: z.number().nullable().optional(),
+  count: z.number().nullable().optional(),
+  moving_time: z.number().nullable().optional(),
+  calories: z.number().nullable().optional(),
+  distance: z.number().nullable().optional(),
 }).passthrough();
 
 export type AthleteFitness = z.infer<typeof AthleteFitnessSchema>;
