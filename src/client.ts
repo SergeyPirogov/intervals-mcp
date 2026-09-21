@@ -114,9 +114,20 @@ export const ActivitySchema = z.object({
   carbs_used: z.number().nullable().optional(),
   carbs_ingested: z.number().nullable().optional(),
   avg_lr_balance: z.number().nullable().optional(),
+  // id of one of the athlete's coach_ticks presets (see AthleteSchema), or null if unset.
+  coach_tick: z.number().nullable().optional(),
 }).passthrough();
 
 export type Activity = z.infer<typeof ActivitySchema>;
+
+// A coach-configured quick-rating preset (e.g. "🔥 Great", "⚠️ Review") an athlete's activities
+// can be tagged with via Activity.coach_tick (which stores just the preset's id).
+export const CoachTickSchema = z.object({
+  id: z.number().optional(),
+  text: z.string().nullable().optional(),
+}).passthrough();
+
+export type CoachTick = z.infer<typeof CoachTickSchema>;
 
 export const WellnessSchema = z.object({
   id: z.string().optional(),
@@ -205,6 +216,7 @@ export const AthleteSchema = z.object({
   // Present only on entries returned by /athletes: the caller's access level on this athlete
   // (NONE/READ/WRITE for someone they follow/coach, absent for their own profile).
   icu_permission: z.string().nullable().optional(),
+  coach_ticks: z.array(CoachTickSchema).nullable().optional(),
 }).passthrough();
 
 export type Athlete = z.infer<typeof AthleteSchema>;
@@ -487,6 +499,21 @@ export async function getAthleteProfile(config: ClientConfig): Promise<Athlete> 
 export async function listAthletes(config: ClientConfig): Promise<Athlete[]> {
   const data = await request<unknown[]>(`/athletes`, config);
   return z.array(AthleteSchema).parse(data);
+}
+
+// coach_tick is a fixed 1-5 rating scale (verified against the live API — PUT /athlete/{id}
+// with a custom coach_ticks list is accepted but never persists, so presets aren't
+// API-configurable). A JSON null is silently ignored by the server (treated as "no change");
+// -1 is what actually clears an existing rating.
+export async function setActivityCoachTick(
+  config: ClientConfig,
+  activityId: string,
+  coachTickId: number | null
+): Promise<Activity> {
+  const data = await mutate<unknown>("PUT", `/activity/${activityId}`, config, {
+    coach_tick: coachTickId ?? -1,
+  });
+  return ActivitySchema.parse(data);
 }
 
 export async function getAthleteZones(config: ClientConfig): Promise<SportSettings[]> {

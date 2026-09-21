@@ -79,6 +79,8 @@ Add to `~/.claude/settings.json`:
 | Tool | Description |
 |------|-------------|
 | `list_athletes` | List athletes you follow or coach (including yourself) — find athlete IDs for a coach account |
+| `get_coach_ticks` | Get coach-tick presets on an athlete's profile (in practice a fixed 1-5 rating scale) |
+| `set_activity_coach_tick` | Set or clear the coach's 1-5 rating on a specific activity |
 | `get_athlete_profile` | FTP, LTHR, weight, VO2max, resting HR |
 | `get_athlete_zones` | Power, HR and pace training zones |
 | `get_athlete_summary` | Current CTL, ATL, TSB and ramp rate snapshot |

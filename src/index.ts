@@ -22,6 +22,7 @@ import {
   getAthleteZones,
   getAthleteSummary,
   listAthletes,
+  setActivityCoachTick,
   getWellnessDay,
   updateWellness,
   getActivityStreams,
@@ -246,6 +247,33 @@ const TOOLS = [
     inputSchema: {
       type: "object",
       properties: {
+        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
+      },
+    },
+  },
+  {
+    name: "get_coach_ticks",
+    description:
+      "Get the coach-tick rating configured on an athlete's profile presets, if any. In practice coach_tick is a fixed 1-5 rating scale on Intervals.icu — use set_activity_coach_tick to rate an activity.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
+        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
+      },
+    },
+  },
+  {
+    name: "set_activity_coach_tick",
+    description:
+      "Set or clear the coach's rating on a specific activity (Intervals.icu's coach-tick feature: a 1-5 scale). Pass coach_tick_id 1-5 to rate it, or omit to clear the current rating.",
+    inputSchema: {
+      type: "object",
+      required: ["activity_id"],
+      properties: {
+        activity_id: { type: "string", description: "The activity ID" },
+        coach_tick_id: { type: "number", description: "Rating 1-5. Omit to clear the current rating." },
+        athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
         api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
       },
     },
@@ -724,6 +752,32 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           return `- **${a.name ?? "Unnamed"}** — id: ${a.id}${perm}${coach}${email}`;
         });
         return { content: [{ type: "text", text: lines.join("\n") }] };
+      }
+
+      case "get_coach_ticks": {
+        const config = getConfig(args);
+        const athlete = await getAthleteProfile(config);
+        const ticks = athlete.coach_ticks ?? [];
+        if (!ticks.length) {
+          return { content: [{ type: "text", text: "No coach-tick presets on this athlete's profile — coach_tick is a fixed 1-5 rating scale. Use set_activity_coach_tick to rate an activity." }] };
+        }
+        const lines = ticks.map((t) => `- [${t.id}] ${t.text ?? ""}`);
+        return { content: [{ type: "text", text: lines.join("\n") }] };
+      }
+
+      case "set_activity_coach_tick": {
+        const activityId = z.string().parse(args["activity_id"]);
+        const coachTickId = args["coach_tick_id"] as number | undefined;
+        const config = getConfig(args);
+        await setActivityCoachTick(config, activityId, coachTickId ?? null);
+        return {
+          content: [{
+            type: "text",
+            text: coachTickId != null
+              ? `Coach tick ${coachTickId} set on activity ${activityId}.`
+              : `Coach tick cleared on activity ${activityId}.`,
+          }],
+        };
       }
 
       case "get_athlete_profile": {

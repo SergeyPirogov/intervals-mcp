@@ -68,6 +68,10 @@ export function formatActivity(a: Activity): string {
     `  Source: ${n(a.source)} | Compliance: ${a.compliance != null ? `${a.compliance}%` : "N/A"}`,
   );
 
+  if (a.coach_tick != null) {
+    lines.push(`  Coach Tick: [${a.coach_tick}] (see get_coach_ticks for the label)`);
+  }
+
   if (a.description) lines.push("", `Description: ${a.description}`);
 
   return lines.join("\n");
