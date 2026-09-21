@@ -21,6 +21,7 @@ import {
   getAthleteProfile,
   getAthleteZones,
   getAthleteSummary,
+  listAthletes,
   getWellnessDay,
   updateWellness,
   getActivityStreams,
@@ -57,6 +58,14 @@ function getConfig(args: Record<string, unknown>): ClientConfig {
   if (!athleteId) throw new Error("No athlete ID provided. Set ATHLETE_ID in .env or pass athlete_id.");
 
   return { apiKey, athleteId };
+}
+
+// list_athletes isn't athlete-scoped (it lists everyone the key's account can access), so it
+// only needs the API key — requiring athlete_id here would break coaches with no default athlete.
+function getApiKey(args: Record<string, unknown>): string {
+  const apiKey = (args["api_key"] as string | undefined) ?? process.env.API_KEY ?? "";
+  if (!apiKey) throw new Error("No API key provided. Set API_KEY in .env or pass api_key.");
+  return apiKey;
 }
 
 function toDateStr(d: Date): string {
@@ -226,6 +235,17 @@ const TOOLS = [
       properties: {
         event_id: { type: "string", description: "The event ID to delete" },
         athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
+        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
+      },
+    },
+  },
+  {
+    name: "list_athletes",
+    description:
+      "List athletes you follow or coach, including yourself. Use this with a coach account to find athlete IDs, then pass athlete_id on other tools (get_activities, get_wellness_data, get_events, etc.) to work with a specific athlete under that same account.",
+    inputSchema: {
+      type: "object",
+      properties: {
         api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
       },
     },
@@ -691,6 +711,19 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const config = getConfig(args);
         await deleteEvent(config, eventId);
         return { content: [{ type: "text", text: `Event ${eventId} deleted.` }] };
+      }
+
+      case "list_athletes": {
+        const apiKey = getApiKey(args);
+        const athletes = await listAthletes({ apiKey, athleteId: "" });
+        if (!athletes.length) return { content: [{ type: "text", text: "No athletes found." }] };
+        const lines = athletes.map((a) => {
+          const perm = a.icu_permission ? ` [${a.icu_permission}]` : " (self)";
+          const coach = a.icu_coach ? " · coach" : "";
+          const email = a.email ? ` · ${a.email}` : "";
+          return `- **${a.name ?? "Unnamed"}** — id: ${a.id}${perm}${coach}${email}`;
+        });
+        return { content: [{ type: "text", text: lines.join("\n") }] };
       }
 
       case "get_athlete_profile": {

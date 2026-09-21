@@ -201,6 +201,10 @@ export const AthleteSchema = z.object({
   country: z.string().nullable().optional(),
   icu_resting_hr: z.number().nullable().optional(),
   icu_weight: z.number().nullable().optional(),
+  icu_coach: z.boolean().nullable().optional(),
+  // Present only on entries returned by /athletes: the caller's access level on this athlete
+  // (NONE/READ/WRITE for someone they follow/coach, absent for their own profile).
+  icu_permission: z.string().nullable().optional(),
 }).passthrough();
 
 export type Athlete = z.infer<typeof AthleteSchema>;
@@ -476,6 +480,13 @@ export async function deleteEvent(
 export async function getAthleteProfile(config: ClientConfig): Promise<Athlete> {
   const data = await request<unknown>(`/athlete/${config.athleteId}`, config);
   return AthleteSchema.parse(data);
+}
+
+// Requires an API_KEY (not a bearer token). Athlete ID in `config` is ignored — this call
+// is not athlete-scoped, it lists everyone the key's account follows or coaches.
+export async function listAthletes(config: ClientConfig): Promise<Athlete[]> {
+  const data = await request<unknown[]>(`/athletes`, config);
+  return z.array(AthleteSchema).parse(data);
 }
 
 export async function getAthleteZones(config: ClientConfig): Promise<SportSettings[]> {

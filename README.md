@@ -78,9 +78,15 @@ Add to `~/.claude/settings.json`:
 ### Athlete
 | Tool | Description |
 |------|-------------|
+| `list_athletes` | List athletes you follow or coach (including yourself) — find athlete IDs for a coach account |
 | `get_athlete_profile` | FTP, LTHR, weight, VO2max, resting HR |
 | `get_athlete_zones` | Power, HR and pace training zones |
 | `get_athlete_summary` | Current CTL, ATL, TSB and ramp rate snapshot |
+
+**Coach accounts:** every tool accepts an optional `athlete_id` argument that overrides the
+`ATHLETE_ID` env var for that call. Log in with a coach's `API_KEY`, call `list_athletes` to get
+IDs for the athletes they coach, then pass `athlete_id: "iXXXXX"` on any tool call to work with
+that specific athlete — no need to swap accounts or `.env` files.
 
 ### Calendar Events
 | Tool | Description |
