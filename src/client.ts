@@ -101,6 +101,19 @@ export const ActivitySchema = z.object({
   source: z.string().nullable().optional(),
   compliance: z.number().nullable().optional(),
   icu_chat_id: z.number().nullable().optional(),
+  coasting_time: z.number().nullable().optional(),
+  ss_cp: z.number().nullable().optional(),
+  ss_w_prime: z.number().nullable().optional(),
+  ss_p_max: z.number().nullable().optional(),
+  icu_pm_ftp: z.number().nullable().optional(),
+  icu_w_prime: z.number().nullable().optional(),
+  p_max: z.number().nullable().optional(),
+  icu_max_wbal_depletion: z.number().nullable().optional(),
+  icu_joules_above_ftp: z.number().nullable().optional(),
+  icu_weight: z.number().nullable().optional(),
+  carbs_used: z.number().nullable().optional(),
+  carbs_ingested: z.number().nullable().optional(),
+  avg_lr_balance: z.number().nullable().optional(),
 }).passthrough();
 
 export type Activity = z.infer<typeof ActivitySchema>;
