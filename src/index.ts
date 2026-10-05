@@ -28,7 +28,11 @@ import {
   getActivityStreams,
   getActivityPowerCurves,
   listWorkouts,
+  listFolders,
+  createFolder,
+  deleteFolder,
   createWorkout,
+  moveWorkout,
   bulkCreateEvents,
   bulkDeleteEvents,
   getAthleteFitness,
@@ -447,6 +451,59 @@ const TOOLS = [
     inputSchema: {
       type: "object",
       properties: {
+        athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
+        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
+      },
+    },
+  },
+  {
+    name: "list_folders",
+    description: "List all folders and plans in the athlete's workout library, including the workouts nested in each.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
+        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
+      },
+    },
+  },
+  {
+    name: "create_folder",
+    description: "Create a new folder (or training plan) in the athlete's workout library.",
+    inputSchema: {
+      type: "object",
+      required: ["name"],
+      properties: {
+        name: { type: "string", description: "Folder name" },
+        description: { type: "string", description: "Folder description" },
+        type: { type: "string", enum: ["FOLDER", "PLAN"], description: "Defaults to FOLDER" },
+        athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
+        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
+      },
+    },
+  },
+  {
+    name: "delete_folder",
+    description: "Delete a workout folder or plan, including all workouts inside it. This cannot be undone.",
+    inputSchema: {
+      type: "object",
+      required: ["folder_id"],
+      properties: {
+        folder_id: { type: "number", description: "ID of the folder to delete (from list_folders)" },
+        athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
+        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
+      },
+    },
+  },
+  {
+    name: "move_workout",
+    description: "Move a workout into a different folder in the athlete's workout library.",
+    inputSchema: {
+      type: "object",
+      required: ["workout_id", "folder_id"],
+      properties: {
+        workout_id: { type: "number", description: "ID of the workout to move (from list_workouts)" },
+        folder_id: { type: "number", description: "ID of the destination folder (from list_folders)" },
         athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
         api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
       },
@@ -916,6 +973,46 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           ].filter(Boolean).join("\n");
         }).join("\n\n---\n\n");
         return { content: [{ type: "text", text }] };
+      }
+
+      case "list_folders": {
+        const config = getConfig(args);
+        const folders = await listFolders(config);
+        if (!folders.length) return { content: [{ type: "text", text: "No folders in library." }] };
+        const text = folders.map(f => {
+          const count = f.num_workouts ?? f.children?.length ?? 0;
+          return [
+            `**${f.name ?? "Unnamed"}** (${f.id}) [${f.type ?? "FOLDER"}]`,
+            `Workouts: ${count}`,
+            f.description ? f.description : "",
+          ].filter(Boolean).join("\n");
+        }).join("\n\n---\n\n");
+        return { content: [{ type: "text", text }] };
+      }
+
+      case "create_folder": {
+        const config = getConfig(args);
+        const folder = await createFolder(config, {
+          name: z.string().parse(args["name"]),
+          description: args["description"] as string | undefined,
+          type: args["type"] as "FOLDER" | "PLAN" | undefined,
+        });
+        return { content: [{ type: "text", text: `Created folder **${folder.name ?? "Unnamed"}** (${folder.id}) [${folder.type ?? "FOLDER"}]` }] };
+      }
+
+      case "delete_folder": {
+        const folderId = z.number().parse(args["folder_id"]);
+        const config = getConfig(args);
+        await deleteFolder(config, folderId);
+        return { content: [{ type: "text", text: `Folder ${folderId} and its workouts deleted.` }] };
+      }
+
+      case "move_workout": {
+        const workoutId = z.number().parse(args["workout_id"]);
+        const folderId = z.number().parse(args["folder_id"]);
+        const config = getConfig(args);
+        const workout = await moveWorkout(config, workoutId, folderId);
+        return { content: [{ type: "text", text: `Moved **${workout.name ?? "Unnamed"}** (${workout.id}) to folder ${folderId}.` }] };
       }
 
       case "create_workout": {

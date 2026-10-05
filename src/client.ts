@@ -254,6 +254,23 @@ export const WorkoutSchema = z.object({
 
 export type Workout = z.infer<typeof WorkoutSchema>;
 
+export const FolderSchema = z.object({
+  id: z.number().optional(),
+  type: z.enum(["FOLDER", "PLAN"]).nullable().optional(),
+  name: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
+  children: z.array(WorkoutSchema).nullable().optional(),
+  num_workouts: z.number().nullable().optional(),
+}).passthrough();
+
+export type Folder = z.infer<typeof FolderSchema>;
+
+export interface FolderInput {
+  name?: string;
+  description?: string;
+  type?: "FOLDER" | "PLAN";
+}
+
 export interface WorkoutInput {
   name?: string;
   description?: string;
@@ -584,6 +601,32 @@ export async function listWorkouts(config: ClientConfig): Promise<Workout[]> {
   return z.array(WorkoutSchema).parse(data);
 }
 
+export async function listFolders(config: ClientConfig): Promise<Folder[]> {
+  const data = await request<unknown[]>(`/athlete/${config.athleteId}/folders`, config);
+  return z.array(FolderSchema).parse(data);
+}
+
+export async function createFolder(
+  config: ClientConfig,
+  input: FolderInput
+): Promise<Folder> {
+  const data = await mutate<unknown>(
+    "POST",
+    `/athlete/${config.athleteId}/folders`,
+    config,
+    input
+  );
+  return FolderSchema.parse(data);
+}
+
+export async function deleteFolder(config: ClientConfig, folderId: number): Promise<void> {
+  await mutate<undefined>(
+    "DELETE",
+    `/athlete/${config.athleteId}/folders/${folderId}`,
+    config
+  );
+}
+
 export async function createWorkout(
   config: ClientConfig,
   input: WorkoutInput
@@ -593,6 +636,20 @@ export async function createWorkout(
     `/athlete/${config.athleteId}/workouts`,
     config,
     input
+  );
+  return WorkoutSchema.parse(data);
+}
+
+export async function moveWorkout(
+  config: ClientConfig,
+  workoutId: number,
+  folderId: number
+): Promise<Workout> {
+  const data = await mutate<unknown>(
+    "PUT",
+    `/athlete/${config.athleteId}/workouts/${workoutId}`,
+    config,
+    { folder_id: folderId }
   );
   return WorkoutSchema.parse(data);
 }
