@@ -654,6 +654,17 @@ export async function moveWorkout(
   return WorkoutSchema.parse(data);
 }
 
+export async function deleteWorkout(
+  config: ClientConfig,
+  workoutId: number
+): Promise<void> {
+  await mutate<undefined>(
+    "DELETE",
+    `/athlete/${config.athleteId}/workouts/${workoutId}`,
+    config
+  );
+}
+
 export async function bulkCreateEvents(
   config: ClientConfig,
   events: EventInput[]

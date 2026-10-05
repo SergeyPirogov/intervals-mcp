@@ -33,6 +33,7 @@ import {
   deleteFolder,
   createWorkout,
   moveWorkout,
+  deleteWorkout,
   bulkCreateEvents,
   bulkDeleteEvents,
   getAthleteFitness,
@@ -504,6 +505,19 @@ const TOOLS = [
       properties: {
         workout_id: { type: "number", description: "ID of the workout to move (from list_workouts)" },
         folder_id: { type: "number", description: "ID of the destination folder (from list_folders)" },
+        athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
+        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
+      },
+    },
+  },
+  {
+    name: "delete_workout",
+    description: "Delete a single workout from the athlete's workout library. This cannot be undone.",
+    inputSchema: {
+      type: "object",
+      required: ["workout_id"],
+      properties: {
+        workout_id: { type: "number", description: "ID of the workout to delete (from list_workouts/list_folders)" },
         athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
         api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
       },
@@ -1013,6 +1027,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const config = getConfig(args);
         const workout = await moveWorkout(config, workoutId, folderId);
         return { content: [{ type: "text", text: `Moved **${workout.name ?? "Unnamed"}** (${workout.id}) to folder ${folderId}.` }] };
+      }
+
+      case "delete_workout": {
+        const workoutId = z.number().parse(args["workout_id"]);
+        const config = getConfig(args);
+        await deleteWorkout(config, workoutId);
+        return { content: [{ type: "text", text: `Workout ${workoutId} deleted.` }] };
       }
 
       case "create_workout": {
