@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "intervals-icu": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["dist/index.js"]
+    }
+  }
+}
