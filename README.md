@@ -62,16 +62,16 @@ Add to `~/.claude/settings.json`:
 ### Activities
 | Tool | Description |
 |------|-------------|
-| `get_activities` | List activities with power, HR, training load, etc. |
+| `get_activities` | One line per activity (NP/IF/TSS, HR, decoupling, RPE); `detail: true` for full metrics |
 | `get_activity_details` | Full metrics for a specific activity |
 | `get_activity_intervals` | Per-interval breakdown (power, HR, speed, elevation) |
 | `get_activity_streams` | Raw per-second data streams (watts, HR, cadence, speed, altitude) |
-| `get_activity_power_curves` | Best power for all durations (5s, 1min, 5min, 20min, etc.) |
+| `get_activity_power_curves` | Best power at standard durations (5s, 1min, 5min, 20min, 1h, etc.) |
 
 ### Wellness & Fitness
 | Tool | Description |
 |------|-------------|
-| `get_wellness_data` | Weight, HRV, sleep, CTL/ATL, subjective scores for a date range |
+| `get_wellness_data` | Weight, HRV, sleep, CTL/ATL, subjective scores for a date range, as one table |
 | `get_wellness_day` | Wellness data for a single date |
 | `update_wellness` | Log weight, HRV, sleep, mood, soreness, etc. |
 
@@ -93,7 +93,7 @@ that specific athlete — no need to swap accounts or `.env` files.
 ### Calendar Events
 | Tool | Description |
 |------|-------------|
-| `get_events` | Calendar events (workouts, races) for a date range |
+| `get_events` | Calendar events (workouts, races) for a date range; descriptions cut at 300 chars unless `full_description: true` |
 | `get_event_by_id` | Full details for a specific event |
 | `create_event` | Create a new event (workout, note, race) |
 | `update_event` | Update event fields or move it to a new date |

@@ -45,7 +45,11 @@ import {
 } from "./client.js";
 import {
   formatActivity,
+  formatActivitySummary,
   formatWellness,
+  formatWellnessTable,
+  formatFitnessTable,
+  formatPowerCurves,
   formatEvent,
   formatIntervalRow,
   formatSportZones,
@@ -97,20 +101,24 @@ function daysFromNow(n: number): string {
   return toDateStr(d);
 }
 
+// Every athlete-scoped tool takes this; api_key is still accepted by getConfig but left out of the
+// schemas, since it comes from the env and repeating it on 36 tools costs context on every session.
+const ATHLETE_ID_PARAM = { type: "string", description: "Athlete ID (default: ATHLETE_ID env)" } as const;
+
 const TOOLS = [
   {
     name: "get_activities",
     description:
-      "Get a list of activities for an athlete from Intervals.icu. Returns activity summaries including power, HR, distance, and training metrics.",
+      "List activities in a date range, one compact line each (duration, distance, NP/IF/TSS, HR, decoupling, RPE). Use get_activity_details for the full breakdown of one activity, or detail: true for all.",
     inputSchema: {
       type: "object",
       properties: {
-        athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
-        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
+        athlete_id: ATHLETE_ID_PARAM,
         start_date: { type: "string", description: "Start date YYYY-MM-DD (default: 30 days ago)" },
         end_date: { type: "string", description: "End date YYYY-MM-DD (default: today)" },
         limit: { type: "number", description: "Max activities to return (default: 10)" },
         include_unnamed: { type: "boolean", description: "Include unnamed activities (default: false)" },
+        detail: { type: "boolean", description: "Full metrics per activity instead of one line (default: false; much larger output)" },
       },
     },
   },
@@ -123,8 +131,7 @@ const TOOLS = [
       required: ["activity_id"],
       properties: {
         activity_id: { type: "string", description: "The activity ID" },
-        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
-        athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
+        athlete_id: ATHLETE_ID_PARAM,
       },
     },
   },
@@ -137,8 +144,7 @@ const TOOLS = [
       required: ["activity_id"],
       properties: {
         activity_id: { type: "string", description: "The activity ID" },
-        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
-        athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
+        athlete_id: ATHLETE_ID_PARAM,
       },
     },
   },
@@ -149,8 +155,7 @@ const TOOLS = [
     inputSchema: {
       type: "object",
       properties: {
-        athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
-        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
+        athlete_id: ATHLETE_ID_PARAM,
         start_date: { type: "string", description: "Start date YYYY-MM-DD (default: 30 days ago)" },
         end_date: { type: "string", description: "End date YYYY-MM-DD (default: today)" },
       },
@@ -159,14 +164,14 @@ const TOOLS = [
   {
     name: "get_events",
     description:
-      "Get calendar events (workouts, races) for an athlete in a date range.",
+      "Get calendar events (workouts, notes, races) in a date range. Descriptions are cut at 300 chars unless full_description is set; get_event_by_id always returns the full text.",
     inputSchema: {
       type: "object",
       properties: {
-        athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
-        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
+        athlete_id: ATHLETE_ID_PARAM,
         start_date: { type: "string", description: "Start date YYYY-MM-DD (default: today)" },
         end_date: { type: "string", description: "End date YYYY-MM-DD (default: 30 days from now)" },
+        full_description: { type: "boolean", description: "Return untruncated descriptions (default: false)" },
       },
     },
   },
@@ -179,8 +184,7 @@ const TOOLS = [
       required: ["event_id"],
       properties: {
         event_id: { type: "string", description: "The event ID" },
-        athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
-        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
+        athlete_id: ATHLETE_ID_PARAM,
       },
     },
   },
@@ -202,8 +206,7 @@ const TOOLS = [
         sub_type: { type: "string", description: "One of NONE, COMMUTE, WARMUP, COOLDOWN, RACE. Not race priority — that's set via category (RACE_A/RACE_B/RACE_C)." },
         color: { type: "string", description: "Event color, e.g. '#1f77b4' (hex) or a named color like 'blue', 'green', 'sky'" },
         workout_doc: { type: "object", description: "Pre-computed Intervals.icu workout_doc (as returned by get_event_by_id/list_workouts on an existing structured workout) to copy verbatim onto this event. Hand-written partial docs won't render correctly — prefer setting `description` with the Workout Builder syntax and omitting this field so Intervals.icu computes it." },
-        athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
-        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
+        athlete_id: ATHLETE_ID_PARAM,
       },
     },
   },
@@ -226,8 +229,7 @@ const TOOLS = [
         sub_type: { type: "string", description: "One of NONE, COMMUTE, WARMUP, COOLDOWN, RACE. Not race priority — that's set via category (RACE_A/RACE_B/RACE_C)." },
         color: { type: "string", description: "Event color, e.g. '#1f77b4' (hex) or a named color like 'blue', 'green', 'sky'" },
         workout_doc: { type: "object", description: "Pre-computed Intervals.icu workout_doc to copy verbatim. Hand-written partial docs won't render correctly — prefer updating `description` with Workout Builder syntax instead." },
-        athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
-        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
+        athlete_id: ATHLETE_ID_PARAM,
       },
     },
   },
@@ -240,8 +242,7 @@ const TOOLS = [
       required: ["event_id"],
       properties: {
         event_id: { type: "string", description: "The event ID to delete" },
-        athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
-        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
+        athlete_id: ATHLETE_ID_PARAM,
       },
     },
   },
@@ -252,7 +253,6 @@ const TOOLS = [
     inputSchema: {
       type: "object",
       properties: {
-        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
       },
     },
   },
@@ -263,8 +263,7 @@ const TOOLS = [
     inputSchema: {
       type: "object",
       properties: {
-        athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
-        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
+        athlete_id: ATHLETE_ID_PARAM,
       },
     },
   },
@@ -278,8 +277,7 @@ const TOOLS = [
       properties: {
         activity_id: { type: "string", description: "The activity ID" },
         coach_tick_id: { type: "number", description: "Rating 1-5. Omit to clear the current rating." },
-        athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
-        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
+        athlete_id: ATHLETE_ID_PARAM,
       },
     },
   },
@@ -289,8 +287,7 @@ const TOOLS = [
     inputSchema: {
       type: "object",
       properties: {
-        athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
-        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
+        athlete_id: ATHLETE_ID_PARAM,
       },
     },
   },
@@ -300,8 +297,7 @@ const TOOLS = [
     inputSchema: {
       type: "object",
       properties: {
-        athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
-        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
+        athlete_id: ATHLETE_ID_PARAM,
       },
     },
   },
@@ -311,8 +307,7 @@ const TOOLS = [
     inputSchema: {
       type: "object",
       properties: {
-        athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
-        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
+        athlete_id: ATHLETE_ID_PARAM,
       },
     },
   },
@@ -324,8 +319,7 @@ const TOOLS = [
       required: ["date"],
       properties: {
         date: { type: "string", description: "Date in YYYY-MM-DD format" },
-        athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
-        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
+        athlete_id: ATHLETE_ID_PARAM,
       },
     },
   },
@@ -354,8 +348,7 @@ const TOOLS = [
         kcalConsumed: { type: "number", description: "Calories consumed" },
         spO2: { type: "number", description: "Blood oxygen %" },
         comments: { type: "string", description: "Free-text notes" },
-        athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
-        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
+        athlete_id: ATHLETE_ID_PARAM,
       },
     },
   },
@@ -372,8 +365,7 @@ const TOOLS = [
           items: { type: "string" },
           description: "Stream types to fetch, e.g. [\"watts\",\"heartrate\",\"cadence\",\"velocity_smooth\",\"altitude\"]. Omit for all.",
         },
-        athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
-        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
+        athlete_id: ATHLETE_ID_PARAM,
       },
     },
   },
@@ -385,8 +377,7 @@ const TOOLS = [
       required: ["activity_id"],
       properties: {
         activity_id: { type: "string", description: "The activity ID" },
-        athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
-        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
+        athlete_id: ATHLETE_ID_PARAM,
       },
     },
   },
@@ -398,8 +389,7 @@ const TOOLS = [
       required: ["activity_id"],
       properties: {
         activity_id: { type: "string", description: "The activity ID" },
-        athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
-        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
+        athlete_id: ATHLETE_ID_PARAM,
       },
     },
   },
@@ -412,8 +402,7 @@ const TOOLS = [
       properties: {
         activity_id: { type: "string", description: "The activity ID" },
         content: { type: "string", description: "Comment text to post" },
-        athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
-        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
+        athlete_id: ATHLETE_ID_PARAM,
       },
     },
   },
@@ -427,8 +416,7 @@ const TOOLS = [
         activity_id: { type: "string", description: "The activity ID" },
         message_id: { type: "number", description: "ID of the message to edit (from get_activity_messages)" },
         content: { type: "string", description: "New comment text" },
-        athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
-        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
+        athlete_id: ATHLETE_ID_PARAM,
       },
     },
   },
@@ -441,8 +429,7 @@ const TOOLS = [
       properties: {
         activity_id: { type: "string", description: "The activity ID" },
         message_id: { type: "number", description: "ID of the message to delete (from get_activity_messages)" },
-        athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
-        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
+        athlete_id: ATHLETE_ID_PARAM,
       },
     },
   },
@@ -452,8 +439,7 @@ const TOOLS = [
     inputSchema: {
       type: "object",
       properties: {
-        athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
-        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
+        athlete_id: ATHLETE_ID_PARAM,
       },
     },
   },
@@ -463,8 +449,7 @@ const TOOLS = [
     inputSchema: {
       type: "object",
       properties: {
-        athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
-        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
+        athlete_id: ATHLETE_ID_PARAM,
       },
     },
   },
@@ -478,8 +463,7 @@ const TOOLS = [
         name: { type: "string", description: "Folder name" },
         description: { type: "string", description: "Folder description" },
         type: { type: "string", enum: ["FOLDER", "PLAN"], description: "Defaults to FOLDER" },
-        athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
-        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
+        athlete_id: ATHLETE_ID_PARAM,
       },
     },
   },
@@ -491,8 +475,7 @@ const TOOLS = [
       required: ["folder_id"],
       properties: {
         folder_id: { type: "number", description: "ID of the folder to delete (from list_folders)" },
-        athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
-        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
+        athlete_id: ATHLETE_ID_PARAM,
       },
     },
   },
@@ -505,8 +488,7 @@ const TOOLS = [
       properties: {
         workout_id: { type: "number", description: "ID of the workout to move (from list_workouts)" },
         folder_id: { type: "number", description: "ID of the destination folder (from list_folders)" },
-        athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
-        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
+        athlete_id: ATHLETE_ID_PARAM,
       },
     },
   },
@@ -518,8 +500,7 @@ const TOOLS = [
       required: ["workout_id"],
       properties: {
         workout_id: { type: "number", description: "ID of the workout to delete (from list_workouts/list_folders)" },
-        athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
-        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
+        athlete_id: ATHLETE_ID_PARAM,
       },
     },
   },
@@ -534,8 +515,7 @@ const TOOLS = [
         type: { type: "string", description: "Activity type: Ride, Run, Swim, etc." },
         folder_id: { type: "number", description: "Folder ID to save workout into (required by API)" },
         workout_doc: { type: "object", description: "Structured workout definition (Intervals.icu workout_doc format)" },
-        athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
-        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
+        athlete_id: ATHLETE_ID_PARAM,
       },
     },
   },
@@ -547,8 +527,7 @@ const TOOLS = [
       properties: {
         start_date: { type: "string", description: "Start date YYYY-MM-DD (default: 30 days ago)" },
         end_date: { type: "string", description: "End date YYYY-MM-DD (default: today)" },
-        athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
-        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
+        athlete_id: ATHLETE_ID_PARAM,
       },
     },
   },
@@ -560,8 +539,7 @@ const TOOLS = [
       properties: {
         event_id: { type: "string", description: "Event/note ID to fetch by ID" },
         date: { type: "string", description: "Date YYYY-MM-DD to list all notes for that day" },
-        athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
-        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
+        athlete_id: ATHLETE_ID_PARAM,
       },
     },
   },
@@ -588,8 +566,7 @@ const TOOLS = [
             },
           },
         },
-        athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
-        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
+        athlete_id: ATHLETE_ID_PARAM,
       },
     },
   },
@@ -605,8 +582,7 @@ const TOOLS = [
           items: { type: "string" },
           description: "Array of event IDs to delete",
         },
-        athlete_id: { type: "string", description: "Athlete ID (defaults to ATHLETE_ID env var)" },
-        api_key: { type: "string", description: "API key (defaults to API_KEY env var)" },
+        athlete_id: ATHLETE_ID_PARAM,
       },
     },
   },
@@ -632,6 +608,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const endDate = (args["end_date"] as string | undefined) ?? today();
         const limit = (args["limit"] as number | undefined) ?? 10;
         const includeUnnamed = (args["include_unnamed"] as boolean | undefined) ?? false;
+        const detail = (args["detail"] as boolean | undefined) ?? false;
 
         let activities = await getActivities(config, { startDate, endDate, limit: limit * 3 });
 
@@ -655,7 +632,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           };
         }
 
-        const text = activities.map(formatActivity).join("\n\n---\n\n");
+        const text = detail
+          ? activities.map(formatActivity).join("\n\n---\n\n")
+          : activities.map(formatActivitySummary).join("\n");
         return { content: [{ type: "text", text }] };
       }
 
@@ -678,12 +657,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
         if (intervals?.length) {
           lines.push("## Individual Intervals", "");
-          intervals.forEach((iv, i) => lines.push(formatIntervalRow(iv, i + 1), ""));
+          intervals.forEach((iv, i) => lines.push(formatIntervalRow(iv, i + 1)));
         }
 
         if (groups?.length) {
           lines.push("## Groups", "");
-          groups.forEach((g, i) => lines.push(formatIntervalRow(g, i + 1), ""));
+          groups.forEach((g, i) => lines.push(formatIntervalRow(g, i + 1)));
         }
 
         if (!intervals?.length && !groups?.length) {
@@ -705,7 +684,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           return { content: [{ type: "text", text: "No wellness data found for the specified date range." }] };
         }
 
-        const text = entries.map(([date, w]) => formatWellness(date, w)).join("\n\n---\n\n");
+        const text = formatWellnessTable(entries);
         return { content: [{ type: "text", text }] };
       }
 
@@ -714,13 +693,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const startDate = (args["start_date"] as string | undefined) ?? today();
         const endDate = (args["end_date"] as string | undefined) ?? daysFromNow(30);
 
+        const fullDescription = (args["full_description"] as boolean | undefined) ?? false;
+
         const events = await getEvents(config, { startDate, endDate });
 
         if (events.length === 0) {
           return { content: [{ type: "text", text: "No events found in the specified date range." }] };
         }
 
-        const text = events.map(formatEvent).join("\n\n---\n\n");
+        const text = events.map((e) => formatEvent(e, fullDescription ? undefined : 300)).join("\n\n");
         return { content: [{ type: "text", text }] };
       }
 
@@ -741,22 +722,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           return { content: [{ type: "text", text: "No fitness data found for the specified date range." }] };
         }
 
-        const lines = entries.map((e) => {
-          const ctl = e.fitness != null ? e.fitness.toFixed(1) : "N/A";
-          const atl = e.fatigue != null ? e.fatigue.toFixed(1) : "N/A";
-          const tsb = e.form != null ? e.form.toFixed(1) : "N/A";
-          const ramp = e.rampRate != null ? e.rampRate.toFixed(1) : "N/A";
-          const eftp = e.eftp != null ? `${e.eftp.toFixed(0)}W` : "N/A";
-          const eftpKg = e.eftpPerKg != null ? `${e.eftpPerKg.toFixed(2)} W/kg` : "N/A";
-          const tl = e.training_load != null ? e.training_load.toFixed(0) : "N/A";
-          return [
-            `**${e.date ?? "N/A"}**`,
-            `  CTL (Fitness): ${ctl} | ATL (Fatigue): ${atl} | TSB (Form): ${tsb}`,
-            `  Ramp Rate: ${ramp} | eFTP: ${eftp} (${eftpKg}) | TL: ${tl}`,
-          ].join("\n");
-        });
-
-        return { content: [{ type: "text", text: lines.join("\n\n") }] };
+        return { content: [{ type: "text", text: formatFitnessTable(entries) }] };
       }
 
       case "get_note": {
@@ -881,18 +847,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         if (!summary) {
           return { content: [{ type: "text", text: "No fitness data available." }] };
         }
+        const f1 = (v: number | null | undefined) => (v != null ? v.toFixed(1) : "N/A");
         const text = [
-          "## Current Fitness Snapshot",
-          "",
-          `CTL (Fitness):  ${summary.fitness ?? "N/A"}`,
-          `ATL (Fatigue):  ${summary.fatigue ?? "N/A"}`,
-          `TSB (Form):     ${summary.form ?? "N/A"}`,
-          `Ramp Rate:      ${summary.rampRate ?? "N/A"}`,
-          "",
-          "## Last 7 Days",
-          "",
-          `Activities: ${summary.count ?? "N/A"} | Training Load: ${summary.training_load ?? "N/A"}`,
-          `Moving Time: ${summary.moving_time != null ? `${(summary.moving_time / 3600).toFixed(1)}h` : "N/A"} | Distance: ${summary.distance != null ? `${(summary.distance / 1000).toFixed(1)} km` : "N/A"} | Calories: ${summary.calories ?? "N/A"}`,
+          `CTL ${f1(summary.fitness)} | ATL ${f1(summary.fatigue)} | TSB ${f1(summary.form)} | Ramp ${f1(summary.rampRate)}`,
+          `Last 7 days: ${summary.count ?? 0} activities | TL ${summary.training_load ?? 0} | ${summary.moving_time != null ? `${(summary.moving_time / 3600).toFixed(1)}h` : "N/A"} | ${summary.distance != null ? `${(summary.distance / 1000).toFixed(1)}km` : "N/A"} | ${summary.calories ?? 0}kcal`,
         ].join("\n");
         return { content: [{ type: "text", text }] };
       }
@@ -936,7 +894,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const activityId = z.string().parse(args["activity_id"]);
         const config = getConfig(args);
         const curves = await getActivityPowerCurves(config, activityId);
-        return { content: [{ type: "text", text: `Power curves for activity ${activityId}:\n\n${JSON.stringify(curves, null, 2)}` }] };
+        return { content: [{ type: "text", text: `Power curve, activity ${activityId}:\n${formatPowerCurves(curves)}` }] };
       }
 
       case "get_activity_messages": {
@@ -1053,7 +1011,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const config = getConfig(args);
         const events = args["events"] as Array<Record<string, unknown>>;
         const created = await bulkCreateEvents(config, events);
-        const text = [`Created ${created.length} events:`, "", ...created.map(e => formatEvent(e))].join("\n");
+        const text = [`Created ${created.length} events:`, ...created.map(e => formatEvent(e, 120))].join("\n");
         return { content: [{ type: "text", text }] };
       }
 
